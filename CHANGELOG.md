@@ -12,6 +12,12 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- `OrcidSource`: one request per researcher to the ORCID public API, one
+  candidate per work group, with a 404 reported as an unknown identifier
+  rather than as a researcher with no works. Reads the iD from the
+  host-mapped field. Optional token; no credential required.
+- `SharedRateLimit`, the cache-backed limiter the NCBI client used, pulled out
+  so every remote gets the same per-site ceiling.
 - De-duplication across DOI, PMID and title, with title matches flagged for
   review rather than merged.
 - NCBI E-utilities identification (`tool`, `email`, optional `api_key`) and a

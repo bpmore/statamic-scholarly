@@ -46,6 +46,7 @@ Then set a contact email. **The addon refuses to query NCBI without one:**
 ```
 SCHOLARLY_NCBI_EMAIL=you@example.org
 SCHOLARLY_NCBI_API_KEY=optional-but-raises-your-rate-limit
+SCHOLARLY_ORCID_ACCESS_TOKEN=optional-too
 ```
 
 NCBI asks every client to identify itself so they can make contact before

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Bpmore\Scholarly\Ncbi;
 
 use Bpmore\Scholarly\Contracts\PublicationMetadataFetcher;
+use Bpmore\Scholarly\Fetching\SharedRateLimit;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * The addon's own E-summary client.
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\RateLimiter;
  *
  *   It rate limits CENTRALLY, not per call site. Sleeping between requests
  *   inside one method is not a rate limit: two queue workers each doing that
- *   politely still exceed the ceiling together.
+ *   politely still exceed the ceiling together. See SharedRateLimit.
  */
 final class EsummaryFetcher implements PublicationMetadataFetcher
 {
@@ -35,19 +35,18 @@ final class EsummaryFetcher implements PublicationMetadataFetcher
      */
     private const string CACHE_PREFIX = 'scholarly_esummary_v1:';
 
-    private const string LIMITER_KEY = 'scholarly:ncbi';
+    /** Shared by every NCBI caller on the site: the ceiling is per site, not per source. */
+    public const string LIMITER_KEY = 'scholarly:ncbi';
 
-    /** How long to sleep between checks of the shared limiter. */
-    private const int POLL_MICROSECONDS = 50_000;
-
-    /** Upper bound on waiting, so a stuck window cannot hang a worker. */
-    private const int MAX_WAIT_MICROSECONDS = 5_000_000;
+    private readonly SharedRateLimit $limiter;
 
     public function __construct(
         private readonly EutilsRequest $request,
         private readonly int $cacheTtlSeconds = 604_800,
         private readonly int $timeoutSeconds = 10,
-    ) {}
+    ) {
+        $this->limiter = new SharedRateLimit(self::LIMITER_KEY, $request->ratePerSecond());
+    }
 
     /**
      * @return array<string, mixed>|null
@@ -80,7 +79,7 @@ final class EsummaryFetcher implements PublicationMetadataFetcher
      */
     private function fetch(string $pmid): ?array
     {
-        $this->waitForSlot();
+        $this->limiter->waitForSlot();
 
         try {
             $response = Http::timeout($this->timeoutSeconds)->get(
@@ -116,42 +115,5 @@ final class EsummaryFetcher implements PublicationMetadataFetcher
         $row = $decoded['result'][$pmid] ?? null;
 
         return \is_array($row) ? $row : null;
-    }
-
-    /**
-     * Block until this process may send another request.
-     *
-     * `RateLimiter::attempt()` does NOT wait: it runs the callback or returns
-     * false. Used alone it would drop a request rather than pace it, which on a
-     * queued job means a silently missing publication. So this polls instead.
-     *
-     * The limiter lives in the cache, so the ceiling is shared across every
-     * worker and command rather than being per process. That is the whole
-     * point: two workers each politely pacing themselves still exceed NCBI's
-     * limit together.
-     *
-     * Bounded rather than an open loop. If the window never clears, something
-     * other than ordinary contention is wrong, and hanging a worker forever is
-     * not the way to report it.
-     */
-    private function waitForSlot(): void
-    {
-        $perSecond = $this->request->ratePerSecond();
-
-        for ($waited = 0; $waited < self::MAX_WAIT_MICROSECONDS; $waited += self::POLL_MICROSECONDS) {
-            if (! RateLimiter::tooManyAttempts(self::LIMITER_KEY, $perSecond)) {
-                RateLimiter::hit(self::LIMITER_KEY, 1);
-
-                return;
-            }
-
-            \usleep(self::POLL_MICROSECONDS);
-        }
-
-        Log::warning('Scholarly waited out its NCBI rate-limit window and sent anyway.', [
-            'per_second' => $perSecond,
-        ]);
-
-        RateLimiter::hit(self::LIMITER_KEY, 1);
     }
 }
