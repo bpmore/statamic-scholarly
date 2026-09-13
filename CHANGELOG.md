@@ -17,6 +17,18 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- The fetch pipeline: `scholarly:fetch` queues one `FetchPublications` job per
+  researcher (or runs inline with `--sync`), every source is consulted, the
+  candidates are de-duplicated, and one entry per paper is written to the
+  owned collection as a candidate with the researcher attached. A rejected
+  entry is never touched again; an approved entry keeps the snapshot the
+  verifier edited, and goes back to review if a fetch attaches a researcher
+  nobody confirmed.
+  `scholarly_last_fetched` on the researcher is stamped per source, only for
+  sources that completed.
+- `scholarly:install`, which creates the owned publications collection and
+  its blueprint under the configured handle. The first fetch does this too.
+- A nightly schedule from `schedule` in config.
 - `PubmedSource`: an author-string search through esearch, paged explicitly,
   with summaries batched through the metadata seam. A name search is an
   estimate and every candidate says so. Zero hits is a complete empty answer;

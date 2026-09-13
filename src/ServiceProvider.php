@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Bpmore\Scholarly;
 
 use Bpmore\Scholarly\Contracts\PublicationMetadataFetcher;
+use Bpmore\Scholarly\Contracts\PublicationSource;
+use Bpmore\Scholarly\Fetching\SourceRegistry;
 use Bpmore\Scholarly\Ncbi\EutilsRequest;
 use Bpmore\Scholarly\Ncbi\PubmedSource;
 use Bpmore\Scholarly\Orcid\OrcidSource;
+use Bpmore\Scholarly\Publications\PublicationsCollection;
 use Bpmore\Scholarly\Researchers\ResearcherFieldMap;
+use Illuminate\Console\Scheduling\Schedule;
 use Statamic\Providers\AddonServiceProvider;
 
 /**
@@ -27,7 +31,8 @@ class ServiceProvider extends AddonServiceProvider
      * @var array<int, class-string>
      */
     protected $commands = [
-        // Commands\Fetch::class,
+        Commands\Fetch::class,
+        Commands\Install::class,
     ];
 
     /**
@@ -81,6 +86,23 @@ class ServiceProvider extends AddonServiceProvider
             );
         });
 
+        $this->app->bind(PublicationsCollection::class, static fn (): PublicationsCollection => new PublicationsCollection(
+            (string) config('statamic-scholarly.publications.collection', 'publications'),
+            (string) config('statamic-scholarly.researchers.collection', 'people'),
+        ));
+
+        // The shipped sources, in the order the snapshot prefers them: a
+        // claim (ORCID) before an estimate (PubMed). A host adds a source by
+        // tagging its own binding; it is consulted after these.
+        $this->app->tag([OrcidSource::class, PubmedSource::class], 'scholarly.sources');
+
+        $this->app->bind(SourceRegistry::class, function (): SourceRegistry {
+            /** @var iterable<PublicationSource> $tagged */
+            $tagged = $this->app->tagged('scholarly.sources');
+
+            return new SourceRegistry(...$tagged);
+        });
+
         $this->app->bind(OrcidSource::class, function (): OrcidSource {
             /** @var array<string, mixed> $orcid */
             $orcid = (array) config('statamic-scholarly.sources.orcid', []);
@@ -96,5 +118,31 @@ class ServiceProvider extends AddonServiceProvider
                 (int) config('statamic-scholarly.ncbi.request_timeout_seconds', 10),
             );
         });
+    }
+
+    /**
+     * The nightly run. `schedule` is a frequency name from config, or `false`
+     * for a host that runs `scholarly:fetch` from its own scheduler.
+     */
+    protected function schedule(Schedule $schedule): void
+    {
+        $frequency = config('statamic-scholarly.schedule', 'daily');
+
+        if (! \is_string($frequency) || \trim($frequency) === '') {
+            return;
+        }
+
+        $event = $schedule->command('scholarly:fetch');
+
+        // Only a method the scheduler actually has. A typo such as "dailly"
+        // would otherwise throw at boot, on every request, on a live site.
+        if (\method_exists($event, $frequency)) {
+            $event->{$frequency}();
+        } else {
+            \Illuminate\Support\Facades\Log::warning('Scholarly does not recognise the configured schedule and is running daily instead.', [
+                'schedule' => $frequency,
+            ]);
+            $event->daily();
+        }
     }
 }

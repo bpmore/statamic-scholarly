@@ -206,3 +206,57 @@ yesterday, and a publication-date window would not.
 - ORCID's `[auid]` field in PubMed search is not used yet. It would return
   ORCID-anchored PubMed records, which are certain rather than estimated, and
   deserves its own source key rather than being folded into the name search.
+
+## 2026-09-13: One publication entry per paper, with a researchers list
+
+**Decision.** The owned collection holds one entry per paper. `researchers`
+lists every tracked researcher a fetch has attached, and `verification_status`
+is the entry's. Papers are co-authored, and a shared paper is one record.
+
+**Consequence, and the rule that contains it.** Approval is for every name
+listed, so attaching a name is a claim about that person. A fetch may attach
+a researcher to a candidate freely. If it would attach a researcher to an
+APPROVED entry, the entry goes back to candidate with the name added: the
+approval was a person's decision about the names it had, and a PubMed name
+match could otherwise attach a namesake to a paper someone already confirmed.
+A rejected entry gains no names from a fetch at all; a verifier attaches a
+co-author to one by hand, which is the confirmation.
+
+**Rejected.** One entry per (paper, researcher), each with its own status. It
+isolates every verifier's decision and queries the same on both entry
+drivers, but it stores a shared paper twice and lets one copy drift from the
+other under editing. Raised, and turned down in favour of the shared record.
+
+**Cost.** A department where many tracked researchers co-author sees shared
+papers return to the queue as each co-author's first fetch attaches them. The
+per-researcher status grid that would avoid this is not portably queryable.
+
+## 2026-09-13: The fetch protects a person's work from the machine
+
+**Decision.** What a re-fetch does to an existing entry depends on its status.
+`rejected`: untouched. `approved`: bibliographic fields untouched; only a
+missing DOI or PMID and the source list are added (and see the entry above
+for a researcher not yet listed). `candidate`: snapshot rewritten, researcher
+added. Matching is on DOI then PMID across the collection, never on title.
+
+**Why.** Rejection durability is the spec's own rule, and its failure looks
+exactly like normal operation. "Edit and confirm" corrects the snapshot, so a
+refresh of an approved entry would undo the correction on the next night.
+Adding an identifier never destroys an edit, so that much is still written.
+
+**Also settled here.**
+
+- `scholarly_last_fetched` on the researcher is a per-source map of the time
+  the run started, advanced only for sources that completed. A source that
+  failed is asked for the same window again next time. A source that is not
+  configured is reported as skipped, makes the run partial, and is not stamped.
+- One job per researcher, not per source: de-duplication needs every source's
+  candidates in one place. The job carries the researcher's id, not the entry.
+- The owned collection is created by `scholarly:install` and by the first
+  fetch that finds it missing. A missing collection at two in the morning is
+  created, not turned into a night of failed jobs. It is never a host's
+  existing collection: if the handle exists, it is used as is.
+- Entries are slugged by their id. Titles collide (an erratum and its paper),
+  and Statamic writes the file by slug, so a title slug is a silent overwrite.
+- Title matches within a run are linked both ways in `possible_duplicates`.
+  Matches against entries from earlier runs are not yet detected.

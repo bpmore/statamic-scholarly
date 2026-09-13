@@ -54,6 +54,20 @@ blocking a heavy one. An addon installed on many sites that skipped this would
 make all of them anonymous traffic, and the block would land on site owners who
 did nothing. Refusing is the safe direction.
 
+## Running a fetch
+
+```
+php please scholarly:install          # creates the publications collection
+php please scholarly:fetch --sync     # every researcher, now, printing each report
+php please scholarly:fetch            # every researcher, on the queue
+php please scholarly:fetch jane-doe --source=pubmed --since=2024-01-01
+```
+
+The schedule in config runs `scholarly:fetch` daily. A report line says
+`complete` or `PARTIAL`, and a partial run names the source that could not
+answer, because zero publications from a source that never ran is not an
+answer.
+
 ## Configuring which fields hold identifiers
 
 The addon does not assume your field handles. Point it at whatever you use:

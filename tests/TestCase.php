@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\Scholarly\Tests;
 
 use Bpmore\Scholarly\ServiceProvider;
+use Statamic\Facades\Blueprint;
 use Statamic\Testing\AddonTestCase;
 use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
 
@@ -23,4 +24,15 @@ abstract class TestCase extends AddonTestCase
     use PreventsSavingStacheItemsToDisk;
 
     protected string $addonServiceProvider = ServiceProvider::class;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Blueprints are files, not Stache items, so the trait above does not
+        // catch them. Without this a blueprint saved by one test run lands in
+        // the Testbench skeleton and is still there for the next run, which
+        // is how a test once passed against a blueprint from a week earlier.
+        Blueprint::setDirectory($this->fakeStacheDirectory.'/blueprints');
+    }
 }
