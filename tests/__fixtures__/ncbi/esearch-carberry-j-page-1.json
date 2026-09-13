@@ -1,0 +1,20 @@
+{
+ "header": {
+  "type": "esearch",
+  "version": "0.3"
+ },
+ "esearchresult": {
+  "count": "63",
+  "retmax": "5",
+  "retstart": "0",
+  "idlist": [
+   "42392556",
+   "41640490",
+   "41516974",
+   "40842283",
+   "40788977"
+  ],
+  "translationset": [],
+  "querytranslation": "\"Carberry J\"[Author]"
+ }
+}
