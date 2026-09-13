@@ -118,3 +118,40 @@ misconfigured host, and the suite would have passed against it.
 **Rejected.** A plain `Orchestra\Testbench\TestCase` listing the providers, the
 shape borrowed from `bpmore/statamic-a11y-gate`. It works there only because
 nothing in that addon reads its own config during boot.
+
+## 2026-09-13: OrcidSource reads work summaries only
+
+**Decision.** `OrcidSource` makes one request per researcher, to
+`/v3.0/{orcid}/works`, and each ORCID group becomes one candidate carrying
+title, DOI, PMID, journal, date and URL. Authors and abstract stay empty.
+
+**Why.** Everything de-duplication keys on is in the summary, and one request
+per researcher has no partial-failure case to design. The full record (one
+call per work, or one per hundred via the bulk endpoint) adds contributors and
+a short description, and with it a second failure mode: summaries fetched,
+details not. That outcome needs its own reporting rule, and it is better
+decided when the review panel exists to show the difference.
+
+**Rejected.** Filling `authors` with the researcher's own name. The claim is
+true, but the candidate would render as a single-author paper, which is a
+different claim and usually a false one.
+
+**Also settled here.**
+
+- One group, one candidate. ORCID has already grouped summaries it believes
+  are the same work, and emitting one candidate per summary only hands the
+  de-duplicator a duplicate to catch. The summary with the highest
+  `display-index` supplies the bibliographic fields; the group's identifiers
+  supply the keys.
+- Only `self` identifiers key a candidate. A `part-of` DOI is the book a
+  chapter sits in, and keying on it would merge every chapter into one
+  believable entry.
+- A 404 is `Reason::UnknownIdentifier`, a new case. A well-formed iD that
+  ORCID has never issued needs a person to check the field, not a retry, and
+  the enum's other cases all send the reader somewhere else.
+- `since` filters on ORCID's `last-modified-date`, client side, because the
+  endpoint has no server-side filter. The whole listing is fetched either
+  way; `since` only narrows what is handed on.
+- No credential is required. ORCID's public API answers without one, so
+  unlike NCBI there is no identification rule to refuse on. A token is
+  optional and only raises the rate ceiling.

@@ -96,5 +96,7 @@ This addon runs on sites nobody here has seen.
 
 - Branch, work, run the tests, open a pull request. Never push to main directly.
 - Never push or merge unless asked.
-- Read `docs/DECISIONS.md` before choosing an approach. Add an entry when your
-  change settles a question, including the alternatives you turned down.
+- Read `docs/SPEC.md` for what is being built and `docs/DECISIONS.md` before
+  choosing an approach. Add a decision entry when your change settles a
+  question, including the alternatives you turned down, and keep the spec
+  matching the code.

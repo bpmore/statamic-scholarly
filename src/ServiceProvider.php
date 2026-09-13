@@ -6,6 +6,7 @@ namespace Bpmore\Scholarly;
 
 use Bpmore\Scholarly\Contracts\PublicationMetadataFetcher;
 use Bpmore\Scholarly\Ncbi\EutilsRequest;
+use Bpmore\Scholarly\Orcid\OrcidSource;
 use Bpmore\Scholarly\Researchers\ResearcherFieldMap;
 use Statamic\Providers\AddonServiceProvider;
 
@@ -62,5 +63,21 @@ class ServiceProvider extends AddonServiceProvider
         // Bound to the addon's own client by default. A host with a PubMed
         // client of its own rebinds this and keeps one cache keyspace.
         $this->app->bind(PublicationMetadataFetcher::class, Ncbi\EsummaryFetcher::class);
+
+        $this->app->bind(OrcidSource::class, function (): OrcidSource {
+            /** @var array<string, mixed> $orcid */
+            $orcid = (array) config('statamic-scholarly.sources.orcid', []);
+            $baseUrl = \is_string($orcid['base_url'] ?? null) && \trim($orcid['base_url']) !== ''
+                ? \rtrim(\trim($orcid['base_url']), '/').'/'
+                : OrcidSource::DEFAULT_BASE_URL;
+
+            return new OrcidSource(
+                $this->app->make(ResearcherFieldMap::class),
+                (bool) ($orcid['enabled'] ?? true),
+                \is_string($orcid['access_token'] ?? null) ? $orcid['access_token'] : null,
+                $baseUrl,
+                (int) config('statamic-scholarly.ncbi.request_timeout_seconds', 10),
+            );
+        });
     }
 }

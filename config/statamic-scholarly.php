@@ -82,7 +82,14 @@ return [
     |
     */
     'sources' => [
-        'orcid' => ['enabled' => true],
+        // ORCID's public API needs no credential. A read-public token only
+        // raises the rate ceiling, so the source runs without one. `base_url`
+        // exists for the sandbox (https://pub.sandbox.orcid.org/v3.0/).
+        'orcid' => [
+            'enabled' => true,
+            'access_token' => env('SCHOLARLY_ORCID_ACCESS_TOKEN'),
+            'base_url' => env('SCHOLARLY_ORCID_BASE_URL', 'https://pub.orcid.org/v3.0/'),
+        ],
         'pubmed' => ['enabled' => true],
         'scopus' => ['enabled' => false, 'api_key' => env('SCOPUS_API_KEY')],
         'web_of_science' => ['enabled' => false, 'api_key' => env('WOS_API_KEY')],

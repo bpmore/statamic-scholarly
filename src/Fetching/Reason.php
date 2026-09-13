@@ -24,4 +24,14 @@ enum Reason: string
 
     /** Refused locally before any request, for example a missing contact email. */
     case RefusedLocally = 'refused locally';
+
+    /**
+     * The remote does not know the identifier it was asked about.
+     *
+     * Earns its own case because the fix is different from every other one:
+     * not a retry, not an upgrade, but a person checking the value in the
+     * researcher's field. A well-formed ORCID iD that ORCID has never issued
+     * is the commonest shape, and it is a typo until proven otherwise.
+     */
+    case UnknownIdentifier = 'identifier not found';
 }

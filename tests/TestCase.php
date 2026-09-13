@@ -6,6 +6,7 @@ namespace Bpmore\Scholarly\Tests;
 
 use Bpmore\Scholarly\ServiceProvider;
 use Statamic\Testing\AddonTestCase;
+use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
 
 /**
  * Statamic's own addon test case, not a hand-rolled Testbench one.
@@ -19,5 +20,7 @@ use Statamic\Testing\AddonTestCase;
  */
 abstract class TestCase extends AddonTestCase
 {
+    use PreventsSavingStacheItemsToDisk;
+
     protected string $addonServiceProvider = ServiceProvider::class;
 }
