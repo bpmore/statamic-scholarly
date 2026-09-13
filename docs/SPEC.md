@@ -1,20 +1,12 @@
-# Specification: Scholarly, a public Statamic add-on
+# Specification: Scholarly
 
 Scholarly aggregates, de-duplicates, scores and routes research publications from external
 bibliographic sources to the correct researcher profile, then exposes a verified publication list for
 frontend output.
 
-**This document specifies the public add-on**, published from the `bpmore` GitHub account and
-supported there. A separate, independent UAMS implementation exists and shares no code with it; that
-one is specified in [`scholarly-uams-spec.md`](https://github.com/UAMS-Web/uams-statamic/blob/main/docs/specs/scholarly-uams-spec.md)
-in the `UAMS-Web/uams-statamic` repository.
-
-This spec was drafted in `UAMS-Web/uams-statamic`, because the analysis behind it was done there,
-and moved here unchanged once this repository existed. Nothing of it remains in that repository.
-
-Design narrative: [#640](https://github.com/UAMS-Web/uams-statamic/issues/640) and
-[#1035](https://github.com/UAMS-Web/uams-statamic/issues/1035), both written against a UAMS-specific
-build. Everything institution-specific in them has been generalized out here.
+This is the build specification for the add-on. The reasoning behind each settled question is in
+[`DECISIONS.md`](DECISIONS.md); read that before choosing an approach, and add an entry when a
+change settles something new.
 
 ---
 
@@ -22,7 +14,8 @@ build. Everything institution-specific in them has been generalized out here.
 
 Read before anything else. These are not proposals: they are observed in
 [`bpmore/statamic-a11y-gate`](https://github.com/bpmore/statamic-a11y-gate), verified against
-`statamic/cms v6.27.1`, and they settle several questions an earlier draft of this spec left open.
+`statamic/cms v6.27.1` there and exercised here on the dogfood site at `v6.32.0`, and they settle
+several questions an earlier draft of this spec left open.
 
 | Property | Value | Source |
 |---|---|---|
@@ -33,7 +26,7 @@ Read before anything else. These are not proposals: they are observed in
 | Config file | `config/statamic-scholarly.php` | Named for the slug, not the short name |
 | `extra.statamic` | `name` and `slug` | |
 | License | **proprietary** | Free to use, not free to take. Section 12 |
-| PHP | `^8.2` | Tested on 8.2 and 8.4 |
+| PHP | `^8.2` | Tested on 8.2, 8.3 and 8.4 |
 | Statamic | `^6.27` | Version 6 only. No version 5 support |
 | Testbench | `^10.11 \|\| ^11.0` | |
 | Pest | `^3.8 \|\| ^4.0` | |
@@ -204,7 +197,11 @@ return [
     ],
 
     'sources' => [
-        'orcid'          => ['enabled' => true],
+        'orcid'          => [
+            'enabled'      => true,
+            'access_token' => env('SCHOLARLY_ORCID_ACCESS_TOKEN'), // optional: raises the ceiling
+            'base_url'     => env('SCHOLARLY_ORCID_BASE_URL', 'https://pub.orcid.org/v3.0/'),
+        ],
         'pubmed'         => ['enabled' => true],
         'scopus'         => ['enabled' => false, 'api_key' => env('SCOPUS_API_KEY')],
         'web_of_science' => ['enabled' => false, 'api_key' => env('WOS_API_KEY')],
@@ -229,8 +226,8 @@ fetch.
 scholarly:fetch {researcher?} {--source=} {--since=}
   └─ FetchPublicationsJob per researcher, per source
        ├─ source->isConfigured()       -> skip, log, mark the run partial
-       ├─ rate limiter acquires a slot -> section 6
-       ├─ source->fetchForResearcher() -> CandidatePublication[]
+       ├─ source->fetchForResearcher() -> FetchOutcome (the source takes its own
+       │                                  rate-limit slot, section 6)
        ├─ de-duplicate (section 7.3)
        ├─ score (Phase 2) or mark candidate (Phase 1)
        └─ write entry, update scholarly_last_fetched[source]
@@ -241,8 +238,13 @@ interface PublicationSource
 {
     public function isConfigured(): bool;
 
-    /** @return list<CandidatePublication> */
-    public function fetchForResearcher(Entry $researcher, ?CarbonInterface $since = null): array;
+    /**
+     * Never a bare array: "found nothing" and "could not look" are different
+     * answers, and FetchOutcome carries candidates, failures and the sources
+     * that completed. `$since` is a date string; each source decides what it
+     * filters on (ORCID: last-modified).
+     */
+    public function fetchForResearcher(Entry $researcher, ?string $since = null): FetchOutcome;
 
     public function sourceKey(): string;
 }
@@ -310,7 +312,7 @@ Control-panel UI comes from Statamic's own component library rather than hand-ro
 license check anywhere in the code. The proprietary license exists so the work cannot be taken
 wholesale, not to gate access. Never write copy, a setting or a code path implying otherwise.
 
-Support matrix per section 1: PHP `^8.2` tested on 8.2 and 8.4, Statamic `^6.27`, no version 5.
+Support matrix per section 1: PHP `^8.2` tested on 8.2, 8.3 and 8.4, Statamic `^6.27`, no version 5.
 
 Semantic versioning, honored strictly, shipping `0.x` while the data model settles. Breaking changes
 to the publication entry shape after 1.0 need a migration path, because consumers will have verified
@@ -330,14 +332,12 @@ the logic whose output looks plausible when wrong, so a diff nobody meant to mak
 invisible. And a scoring change that shifts a band boundary silently re-routes real publications
 between auto-approve, queue and discard, which no unit test on a single case will catch.
 
-**A revision worth stating plainly.** An earlier draft of this spec proposed sharing one corpus
-between this add-on and the UAMS build, as a conformance suite holding two implementations to the
-same answers. That arrangement was already tried in this account, between the sibling add-on and
-another project, and it ended when the add-on was separated to stand on its own. The reason the
-corpus was kept is the one that generalizes: what it is worth day to day never depended on anyone
-else running it. **So each build keeps its own corpus.** Sharing is available if both sides ever want
-it and costs nothing to attempt later, but it is not a requirement of either build and should not be
-designed for.
+**On sharing a corpus with another implementation.** Holding two implementations of the same rules
+to one set of answers is an appealing idea and was tried once in this account, between the sibling
+add-on and another project. It ended when that add-on was separated to stand on its own, and the
+corpus was kept anyway, because what it is worth day to day never depended on anyone else running it.
+That is the reasoning to inherit: **this corpus exists for this repository.** Sharing it later costs
+nothing to attempt and is not designed for.
 
 ## 14. Testing
 
@@ -380,7 +380,8 @@ Follow the sibling add-on's workflow shape, which is stricter than most and for 
 
 ## 15. Dogfooding
 
-**On a dedicated site, not at UAMS.** This matters more than it sounds. The portability requirements
+**On a dedicated site, and not on whichever host the add-on was written against.** This matters
+more than it sounds. The portability requirements
 in section 5 are exactly the class that passes a test suite and fails on a real host: a hardcoded
 collection handle, an assumed field name, a driver-specific query. A Testbench suite the author also
 wrote will not catch them. The add-on needs at least one real Statamic install, with real content and
@@ -428,7 +429,5 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 
 | Version | Date | Summary |
 |---|---|---|
-| 1.0.0 | 2026-09-13 | Initial marketplace specification, split from the combined spec when the two builds were made independent. |
-| 1.1.0 | 2026-09-13 | Claimed the unprefixed `scholarly` identity; recorded that dogfooding happens on a dedicated site. |
-| 2.0.0 | 2026-09-13 | Rewritten to the author's observed add-on conventions: `statamic-` repository prefix, proprietary license, PHP 8.2 and Statamic 6 floors, no committed lock, verified provider shape, the corpus pattern, and no em dashes. Closed the licensing and support-matrix questions; revised the shared-corpus proposal after finding that arrangement had been tried and ended. |
-| 2.0.1 | 2026-09-13 | Moved from `UAMS-Web/uams-statamic` into this repository. Only the header changed: the staging note is gone and the link to the UAMS spec now points at that repository. |
+| 1.0.0 | 2026-09-13 | Initial specification. |
+| 1.0.1 | 2026-09-13 | Matched to the code: `fetchForResearcher()` returns `FetchOutcome` and takes a string `since`; ORCID config keys; PHP 8.3 in the matrix; Statamic version the dogfood site runs. |
