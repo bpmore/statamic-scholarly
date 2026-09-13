@@ -101,3 +101,20 @@ applies here unchanged.
 **Rejected.** A shared fixture corpus as a cross-implementation conformance
 suite. It remains available and costs nothing to attempt later, but designing for
 it now would repeat an arrangement that has already been unwound once.
+
+## 2026-09-13: Feature tests extend Statamic's AddonTestCase
+
+**Decision.** `tests/TestCase.php` extends `Statamic\Testing\AddonTestCase` and
+names the provider. Nothing else is wired by hand.
+
+**Why.** `AddonServiceProvider::bootConfig()` locates the addon through the
+Composer manifest, and a package under test is not in
+`vendor/composer/installed.json`. A hand-rolled Testbench case booted without
+error and merged no config: `config('statamic-scholarly')` read null and every
+binding quietly fell back to its default. That is the same silent shape as a
+misconfigured host, and the suite would have passed against it.
+`AddonTestCase` writes the addon into the manifest from `composer.json`.
+
+**Rejected.** A plain `Orchestra\Testbench\TestCase` listing the providers, the
+shape borrowed from `bpmore/statamic-a11y-gate`. It works there only because
+nothing in that addon reads its own config during boot.
