@@ -15,20 +15,23 @@ use Statamic\Facades\Site;
 /**
  * Writes merged publications for one researcher into the owned collection.
  *
- * One entry per (paper, researcher). The claim the addon makes is "this
- * paper is this person's work", and a verifier's decision is about that pair,
- * so the status lives on the pair. See DECISIONS for the alternative.
+ * One entry per paper, with a `researchers` list, because papers are
+ * co-authored and a shared paper is one record. The status is the entry's,
+ * so attaching a researcher to an entry is a claim about them, and the
+ * rules below make sure a machine never completes that claim on its own:
  *
- * What happens to an entry that already exists depends on its status, and
- * the rules protect a person's work from the machine:
- *
- *   rejected   Untouched. A source returning the same namesake paper nightly
- *              must not re-queue it, or the verifier's rejection meant nothing.
+ *   rejected   Untouched, and no researcher is added. A source returning the
+ *              same namesake paper nightly must not re-queue it, or the
+ *              verifier's rejection meant nothing. A verifier can attach a
+ *              co-author by hand.
  *   approved   Bibliographic fields untouched, because "edit and confirm"
  *              corrects the snapshot and a refresh would undo the correction.
- *              Only identifiers and the source list are added to, since
- *              adding an identifier never destroys an edit.
- *   candidate  Snapshot rewritten. Nobody has touched it yet.
+ *              Identifiers and the source list are added to. If the fetch is
+ *              for a researcher NOT yet listed, they are added and the entry
+ *              goes back to candidate: an approval was a person's decision
+ *              about the listed names, and a PubMed name match could attach
+ *              a namesake to an approved paper otherwise.
+ *   candidate  Snapshot rewritten, researcher added. Nobody has touched it.
  */
 final class PublicationWriter
 {
@@ -43,19 +46,21 @@ final class PublicationWriter
         $refreshed = 0;
         $kept = 0;
         $suppressed = 0;
+        $reopened = 0;
 
         /** @var array<int, EntryContract> $entriesByIndex */
         $entriesByIndex = [];
 
         foreach ($merged as $index => $publication) {
             $values = Snapshot::fromMerged($publication);
-            $existing = $this->find($researcher, $publication);
+            $existing = $this->find($publication);
 
             if ($existing === null) {
                 $entry = $this->create($researcher, $values, $fetchedAt);
                 $created++;
             } else {
                 $entry = $existing;
+                $listed = \in_array($researcher->id(), $this->researchersOn($existing), true);
 
                 switch ($existing->get('verification_status')) {
                     case 'rejected':
@@ -65,12 +70,18 @@ final class PublicationWriter
 
                     case 'approved':
                         $this->addIdentifiers($existing, $values, $fetchedAt);
-                        $kept++;
+
+                        if ($listed) {
+                            $kept++;
+                        } else {
+                            $this->reopenFor($existing, $researcher);
+                            $reopened++;
+                        }
 
                         break;
 
                     default:
-                        $this->refresh($existing, $values, $fetchedAt);
+                        $this->refresh($existing, $researcher, $values, $fetchedAt);
                         $refreshed++;
                 }
             }
@@ -80,16 +91,17 @@ final class PublicationWriter
 
         $this->linkTitleMatches($merged, $entriesByIndex);
 
-        return new WriteReport($created, $refreshed, $kept, $suppressed);
+        return new WriteReport($created, $refreshed, $kept, $suppressed, $reopened);
     }
 
     /**
-     * This researcher's entry for this paper, matched on DOI then PMID.
+     * The site's entry for this paper, whoever it was fetched for, matched
+     * on DOI then PMID.
      *
      * Title is never a match key here either, for the same reason it is not
      * one in the de-duplicator.
      */
-    private function find(EntryContract $researcher, MergedPublication $publication): ?EntryContract
+    private function find(MergedPublication $publication): ?EntryContract
     {
         foreach (['doi' => $publication->doi, 'pmid' => $publication->pmid] as $field => $value) {
             if ($value === null) {
@@ -98,7 +110,6 @@ final class PublicationWriter
 
             $entry = Entry::query()
                 ->where('collection', $this->collection->handle())
-                ->where('researcher', $researcher->id())
                 ->where($field, $value)
                 ->first();
 
@@ -115,9 +126,9 @@ final class PublicationWriter
      */
     private function create(EntryContract $researcher, array $values, string $fetchedAt): EntryContract
     {
-        // The id doubles as the slug. A slug from the title would collide
-        // between two researchers who share a paper, and Statamic writes the
-        // file by slug, so a collision is a silent overwrite.
+        // The id doubles as the slug. Titles collide (an erratum and its
+        // paper), and Statamic writes the file by slug, so a slug from the
+        // title is a silent overwrite waiting to happen.
         $id = (string) Str::uuid();
 
         $entry = Entry::make()
@@ -128,7 +139,7 @@ final class PublicationWriter
             ->published(true)
             ->data([
                 ...$values,
-                'researcher' => $researcher->id(),
+                'researchers' => [$researcher->id()],
                 'verification_status' => 'candidate',
                 'fetched_at' => $fetchedAt,
             ]);
@@ -141,10 +152,58 @@ final class PublicationWriter
     /**
      * @param  array<string, mixed>  $values
      */
-    private function refresh(EntryContract $entry, array $values, string $fetchedAt): void
+    private function refresh(EntryContract $entry, EntryContract $researcher, array $values, string $fetchedAt): void
     {
-        $entry->merge([...$values, 'fetched_at' => $fetchedAt]);
+        $entry->merge([
+            ...$values,
+            'researchers' => $this->withResearcher($entry, $researcher),
+            'fetched_at' => $fetchedAt,
+        ]);
         $entry->saveQuietly();
+    }
+
+    /**
+     * A person approved this entry for the names on it. A new name is a new
+     * claim, so the entry goes back to the queue with the new name attached.
+     * The earlier verifier and time are kept as history.
+     */
+    private function reopenFor(EntryContract $entry, EntryContract $researcher): void
+    {
+        $entry->merge([
+            'researchers' => $this->withResearcher($entry, $researcher),
+            'verification_status' => 'candidate',
+        ]);
+        $entry->saveQuietly();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function researchersOn(EntryContract $entry): array
+    {
+        $ids = [];
+
+        foreach ((array) $entry->get('researchers', []) as $id) {
+            if (\is_string($id) || \is_int($id)) {
+                $ids[] = (string) $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function withResearcher(EntryContract $entry, EntryContract $researcher): array
+    {
+        $ids = $this->researchersOn($entry);
+
+        if (! \in_array($researcher->id(), $ids, true)) {
+            $ids[] = $researcher->id();
+        }
+
+        return $ids;
     }
 
     /**

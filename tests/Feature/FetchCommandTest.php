@@ -97,7 +97,7 @@ it('runs inline with --sync and prints each report, failing when any run was par
         ->expectsOutputToContain('Ada: PARTIAL: 1 candidate(s) from orcid; 1 created, 0 refreshed, 0 approved kept, 0 rejected suppressed; failed pubmed: transport failed (HTTP 503)')
         ->assertFailed();
 
-    expect(Entry::query()->where('collection', 'research_outputs')->where('researcher', $a->id())->count())->toBe(1);
+    expect(Entry::query()->where('collection', 'research_outputs')->get()->filter(fn ($e) => in_array($a->id(), (array) $e->get('researchers'), true))->count())->toBe(1);
 });
 
 it('the job resolves the researcher by id and runs the pipeline', function (): void {

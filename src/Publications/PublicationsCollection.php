@@ -94,7 +94,7 @@ final class PublicationsCollection
                     'display' => 'Verification',
                     'sections' => [
                         ['fields' => [
-                            $field('researcher', ['type' => 'entries', 'display' => 'Researcher', 'collections' => [$this->researcherCollection], 'max_items' => 1, 'validate' => ['required']]),
+                            $field('researchers', ['type' => 'entries', 'display' => 'Researchers', 'collections' => [$this->researcherCollection], 'validate' => ['required'], 'instructions' => 'Approval is for every name listed. Adding a name by hand is confirming the paper for them.']),
                             $field('verification_status', ['type' => 'select', 'display' => 'Status', 'default' => 'candidate', 'options' => [
                                 'candidate' => 'Candidate (not yet confirmed)',
                                 'approved' => 'Approved',

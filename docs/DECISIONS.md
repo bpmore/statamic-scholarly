@@ -207,35 +207,37 @@ yesterday, and a publication-date window would not.
   ORCID-anchored PubMed records, which are certain rather than estimated, and
   deserves its own source key rather than being folded into the name search.
 
-## 2026-09-13: One publication entry per (paper, researcher)
+## 2026-09-13: One publication entry per paper, with a researchers list
 
-**Decision.** The owned collection holds one entry per pair, with a single
-`researcher` field, its own `verification_status`, `verified_by` and
-`verified_at`. Two researchers who share a paper have two entries.
+**Decision.** The owned collection holds one entry per paper. `researchers`
+lists every tracked researcher a fetch has attached, and `verification_status`
+is the entry's. Papers are co-authored, and a shared paper is one record.
 
-**Why.** The claim the addon makes is "this paper is this person's work", and
-a verifier's decision is about that pair. An entry shared between two
-researchers with one status means approving it for A silently asserts it for
-B, which blurs exactly the claim the product principle says must not blur. A
-per-pair entry is also the boring one to query: `where researcher = X and
-status = approved` works the same on the Stache and on the Eloquent driver.
+**Consequence, and the rule that contains it.** Approval is for every name
+listed, so attaching a name is a claim about that person. A fetch may attach
+a researcher to a candidate freely. If it would attach a researcher to an
+APPROVED entry, the entry goes back to candidate with the name added: the
+approval was a person's decision about the names it had, and a PubMed name
+match could otherwise attach a namesake to a paper someone already confirmed.
+A rejected entry gains no names from a fetch at all; a verifier attaches a
+co-author to one by hand, which is the confirmation.
 
-**Rejected.** One entry per paper with a `researchers` list and a per-
-researcher status grid, which the spec's field list implied. It keeps one
-bibliographic snapshot, but every read of "approved for X" becomes a search
-inside a grid, which the query builders do not do portably, and every edit to
-the shared snapshot is an edit to every researcher's approved record at once.
+**Rejected.** One entry per (paper, researcher), each with its own status. It
+isolates every verifier's decision and queries the same on both entry
+drivers, but it stores a shared paper twice and lets one copy drift from the
+other under editing. Raised, and turned down in favour of the shared record.
 
-**Cost.** Two copies of the snapshot for a shared paper, and a verifier's
-correction on one does not reach the other. Acceptable while the data model is
-0.x; a "same paper" link across pairs can be added without changing this.
+**Cost.** A department where many tracked researchers co-author sees shared
+papers return to the queue as each co-author's first fetch attaches them. The
+per-researcher status grid that would avoid this is not portably queryable.
 
 ## 2026-09-13: The fetch protects a person's work from the machine
 
 **Decision.** What a re-fetch does to an existing entry depends on its status.
 `rejected`: untouched. `approved`: bibliographic fields untouched; only a
-missing DOI or PMID and the source list are added. `candidate`: snapshot
-rewritten. Matching is on DOI then PMID for that researcher, never on title.
+missing DOI or PMID and the source list are added (and see the entry above
+for a researcher not yet listed). `candidate`: snapshot rewritten, researcher
+added. Matching is on DOI then PMID across the collection, never on title.
 
 **Why.** Rejection durability is the spec's own rule, and its failure looks
 exactly like normal operation. "Edit and confirm" corrects the snapshot, so a
@@ -254,7 +256,7 @@ Adding an identifier never destroys an edit, so that much is still written.
   fetch that finds it missing. A missing collection at two in the morning is
   created, not turned into a night of failed jobs. It is never a host's
   existing collection: if the handle exists, it is used as is.
-- Entries are slugged by their id. A slug from the title collides between two
-  researchers who share a paper, and Statamic writes the file by slug.
+- Entries are slugged by their id. Titles collide (an erratum and its paper),
+  and Statamic writes the file by slug, so a title slug is a silent overwrite.
 - Title matches within a run are linked both ways in `possible_duplicates`.
   Matches against entries from earlier runs are not yet detected.

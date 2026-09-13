@@ -19,9 +19,11 @@ have verified entries by hand and cannot re-verify them.
 
 - The fetch pipeline: `scholarly:fetch` queues one `FetchPublications` job per
   researcher (or runs inline with `--sync`), every source is consulted, the
-  candidates are de-duplicated, and one entry per (paper, researcher) is
-  written to the owned collection as a candidate. A rejected entry is never
-  touched again; an approved entry keeps the snapshot the verifier edited.
+  candidates are de-duplicated, and one entry per paper is written to the
+  owned collection as a candidate with the researcher attached. A rejected
+  entry is never touched again; an approved entry keeps the snapshot the
+  verifier edited, and goes back to review if a fetch attaches a researcher
+  nobody confirmed.
   `scholarly_last_fetched` on the researcher is stamped per source, only for
   sources that completed.
 - `scholarly:install`, which creates the owned publications collection and

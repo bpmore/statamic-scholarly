@@ -52,7 +52,9 @@ function found(string $key, CandidatePublication ...$candidates): FetchOutcome
 
 function publicationsFor(\Statamic\Contracts\Entries\Entry $researcher): array
 {
-    return Entry::query()->where('collection', PUBLICATIONS)->where('researcher', $researcher->id())->get()->all();
+    return Entry::query()->where('collection', PUBLICATIONS)->get()
+        ->filter(fn ($e) => in_array($researcher->id(), (array) $e->get('researchers'), true))
+        ->values()->all();
 }
 
 it('creates the owned collection and blueprint under the configured handles, once', function (): void {
@@ -66,7 +68,7 @@ it('creates the owned collection and blueprint under the configured handles, onc
     expect(Collection::findByHandle(PUBLICATIONS))->not->toBeNull()
         ->and($blueprint)->not->toBeNull()
         ->and($blueprint->hasField('verification_status'))->toBeTrue()
-        ->and($blueprint->field('researcher')->config()['collections'])->toBe([RESEARCHERS])
+        ->and($blueprint->field('researchers')->config()['collections'])->toBe([RESEARCHERS])
         ->and(Collection::findByHandle('publications'))->toBeNull('the default handle is not created');
 });
 
@@ -97,7 +99,7 @@ it('writes one candidate entry per merged paper, linked to the researcher, never
         ->and($a->get('source_apis'))->toBe(['orcid', 'pubmed'])
         ->and($a->get('authors'))->toBe([['name' => 'Carberry J', 'affiliation' => null, 'orcid' => null]])
         ->and($a->get('verification_status'))->toBe('candidate')
-        ->and($a->get('researcher'))->toBe($researcher->id())
+        ->and($a->get('researchers'))->toBe([$researcher->id()])
         ->and($b->get('verification_status'))->toBe('candidate')
         ->and($b->get('source_apis'))->toBe(['pubmed']);
 
@@ -244,22 +246,58 @@ it('links title matches both ways for review and merges nothing', function (): v
         ->and($byPmid['2']->get('possible_duplicates'))->toBe([$byPmid['1']->id()]);
 });
 
-it('keeps two researchers who share a paper as two entries with their own status', function (): void {
+it('attaches a co-author to the one entry for a shared paper while it is a candidate', function (): void {
     $a = aResearcher('A');
     $b = aResearcher('B');
     $paper = new CandidatePublication('orcid', title: 'Joint paper', doi: '10.1000/joint');
 
     pipeline(new FakeSource('orcid', found('orcid', $paper)))($a);
-    pipeline(new FakeSource('orcid', found('orcid', $paper)))($b);
+    $report = pipeline(new FakeSource('orcid', found('orcid', $paper)))($b);
 
-    $forA = publicationsFor($a);
-    $forB = publicationsFor($b);
+    $all = Entry::query()->where('collection', PUBLICATIONS)->get();
 
-    expect($forA)->toHaveCount(1)
-        ->and($forB)->toHaveCount(1)
-        ->and($forA[0]->id())->not->toBe($forB[0]->id());
+    expect($all)->toHaveCount(1)
+        ->and($all[0]->get('researchers'))->toBe([$a->id(), $b->id()])
+        ->and($all[0]->get('verification_status'))->toBe('candidate')
+        ->and($report->written->refreshed)->toBe(1);
+});
 
-    $forA[0]->set('verification_status', 'approved')->save();
+it('sends an approved paper back to review when a fetch attaches a researcher nobody confirmed', function (): void {
+    // A PubMed name match could attach a namesake to an approved paper, and
+    // approval is for every name listed. The entry keeps its snapshot and
+    // its history, loses its approved status, and gains the new name.
+    $a = aResearcher('A');
+    $b = aResearcher('B');
+    $paper = new CandidatePublication('pubmed', title: 'Approved for A', pmid: '77');
 
-    expect(publicationsFor($b)[0]->get('verification_status'))->toBe('candidate');
+    pipeline(new FakeSource('pubmed', found('pubmed', $paper)))($a);
+    $entry = publicationsFor($a)[0];
+    $entry->merge(['verification_status' => 'approved', 'title' => 'Edited by A verifier', 'verified_by' => 'user-1'])->save();
+
+    $report = pipeline(new FakeSource('pubmed', found('pubmed', $paper)))($b);
+
+    $entry = Entry::find($entry->id());
+
+    expect($entry->get('researchers'))->toBe([$a->id(), $b->id()])
+        ->and($entry->get('verification_status'))->toBe('candidate')
+        ->and($entry->get('title'))->toBe('Edited by A verifier')
+        ->and($entry->get('verified_by'))->toBe('user-1')
+        ->and($report->written->reopened)->toBe(1)
+        ->and($report->written->keptApproved)->toBe(0);
+});
+
+it('does not attach a researcher to a rejected paper', function (): void {
+    $a = aResearcher('A');
+    $b = aResearcher('B');
+    $paper = new CandidatePublication('pubmed', title: 'Rejected for A', pmid: '88');
+
+    pipeline(new FakeSource('pubmed', found('pubmed', $paper)))($a);
+    $entry = publicationsFor($a)[0];
+    $entry->set('verification_status', 'rejected')->save();
+
+    $report = pipeline(new FakeSource('pubmed', found('pubmed', $paper)))($b);
+
+    expect(Entry::find($entry->id())->get('researchers'))->toBe([$a->id()])
+        ->and($report->written->suppressed)->toBe(1)
+        ->and(Entry::query()->where('collection', PUBLICATIONS)->count())->toBe(1);
 });
