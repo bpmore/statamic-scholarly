@@ -138,6 +138,10 @@ already operates a PubMed client can bind its own implementation and keep one cl
 keyspace. Without the seam such a host fetches and caches the same PMID twice, and the two caches can
 disagree.
 
+The seam batches (`summariesForPmids()`, one request per hundred) and it throws when NCBI could not
+be asked. Null at this seam means exactly one thing: NCBI answered, and said there is no such record.
+A client that returns null for a timeout, and caches it, records a rate-limit block as a missing paper.
+
 ## 7. Data model
 
 ### 7.1 Researcher fields
@@ -430,4 +434,5 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 | Version | Date | Summary |
 |---|---|---|
 | 1.0.0 | 2026-09-13 | Initial specification. |
+| 1.0.2 | 2026-09-13 | Section 6.1: the metadata seam batches and throws; null means only an absent record. |
 | 1.0.1 | 2026-09-13 | Matched to the code: `fetchForResearcher()` returns `FetchOutcome` and takes a string `since`; ORCID config keys; PHP 8.3 in the matrix; Statamic version the dogfood site runs. |

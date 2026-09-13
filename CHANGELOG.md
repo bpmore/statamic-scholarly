@@ -10,8 +10,20 @@ have verified entries by hand and cannot re-verify them.
 
 ## [Unreleased]
 
+### Fixed
+
+- The E-summary client cached a timeout or a refused request as a missing
+  record for a week. Only a miss NCBI reports is recorded now.
+
 ### Added
 
+- `PubmedSource`: an author-string search through esearch, paged explicitly,
+  with summaries batched through the metadata seam. A name search is an
+  estimate and every candidate says so. Zero hits is a complete empty answer;
+  a search PMID the summary endpoint disowns makes the run partial.
+- `PublicationMetadataFetcher::summariesForPmids()`, one request per hundred
+  PMIDs. Both methods now throw when NCBI could not be asked; null means only
+  that NCBI said the record does not exist.
 - `OrcidSource`: one request per researcher to the ORCID public API, one
   candidate per work group, with a 404 reported as an unknown identifier
   rather than as a researcher with no works. Reads the iD from the

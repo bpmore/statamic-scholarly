@@ -1,0 +1,871 @@
+{
+ "header": {
+  "type": "esummary",
+  "version": "0.3"
+ },
+ "result": {
+  "uids": [
+   "42392556",
+   "41640490",
+   "41516974",
+   "40842283",
+   "40788977",
+   "99999999"
+  ],
+  "42392556": {
+   "uid": "42392556",
+   "pubdate": "2026 Nov",
+   "epubdate": "2026 Jul 2",
+   "source": "Am Heart J",
+   "authors": [
+    {
+     "name": "Sykes R",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Tan D",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "McKinley G",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Carrick D",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Ang D",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Apps AP",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Bradley C",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Brogan RA",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Carberry J",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Collison DG",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Eteiba H",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Gildea P",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Ghattas A",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Gohar A",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Good RIS",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Hanna R",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Jamieson L",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Joshi FR",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Kamdar AL",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Lindsay MM",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "McCartney PJ",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "McFarlane R",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "McMenamin M",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Morrow AJ",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Orchard V",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Robertson KE",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Rocchiccioli PJ",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Shaukat A",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Tzolos E",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Vicere A",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Watkins S",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Galbraith M",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Reynolds H",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "McConnachie A",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Berry C",
+     "authtype": "Author",
+     "clusterid": ""
+    }
+   ],
+   "lastauthor": "Berry C",
+   "title": "Stratified medicine with eplerenone for myocardial infarction or injury and no obstructive coronary arteries: A registry-based basket trial.",
+   "sorttitle": "stratified medicine with eplerenone for myocardial infarction or injury and no obstructive coronary arteries a registry based basket trial",
+   "volume": "301",
+   "issue": "",
+   "pages": "107518",
+   "lang": [
+    "eng"
+   ],
+   "nlmuniqueid": "0370465",
+   "issn": "0002-8703",
+   "essn": "1097-6744",
+   "pubtype": [
+    "Journal Article",
+    "Randomized Controlled Trial",
+    "Multicenter Study"
+   ],
+   "recordstatus": "PubMed - indexed for MEDLINE",
+   "pubstatus": "256",
+   "articleids": [
+    {
+     "idtype": "pubmed",
+     "idtypen": 1,
+     "value": "42392556"
+    },
+    {
+     "idtype": "doi",
+     "idtypen": 3,
+     "value": "10.1016/j.ahj.2026.107518"
+    },
+    {
+     "idtype": "pii",
+     "idtypen": 4,
+     "value": "S0002-8703(26)00180-8"
+    }
+   ],
+   "history": [
+    {
+     "pubstatus": "received",
+     "date": "2026/03/13 00:00"
+    },
+    {
+     "pubstatus": "revised",
+     "date": "2026/06/12 00:00"
+    },
+    {
+     "pubstatus": "accepted",
+     "date": "2026/06/17 00:00"
+    },
+    {
+     "pubstatus": "medline",
+     "date": "2026/08/20 23:35"
+    },
+    {
+     "pubstatus": "pubmed",
+     "date": "2026/07/03 00:30"
+    },
+    {
+     "pubstatus": "entrez",
+     "date": "2026/07/02 19:33"
+    }
+   ],
+   "references": [],
+   "attributes": [
+    "Has Abstract"
+   ],
+   "pmcrefcount": "",
+   "fulljournalname": "American heart journal",
+   "elocationid": "doi: 10.1016/j.ahj.2026.107518",
+   "doctype": "citation",
+   "srccontriblist": [],
+   "booktitle": "",
+   "medium": "",
+   "edition": "",
+   "publisherlocation": "",
+   "publishername": "",
+   "srcdate": "",
+   "reportnumber": "",
+   "availablefromurl": "",
+   "locationlabel": "",
+   "doccontriblist": [],
+   "docdate": "",
+   "bookname": "",
+   "chapter": "",
+   "sortpubdate": "2026/11/01 00:00",
+   "sortfirstauthor": "Sykes R",
+   "vernaculartitle": ""
+  },
+  "41640490": {
+   "uid": "41640490",
+   "pubdate": "2025",
+   "epubdate": "2025 Dec 31",
+   "source": "Can Prosthet Orthot J",
+   "authors": [
+    {
+     "name": "Lebel A",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Kline M",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Boucher J",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Carberry J",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Adulovic N",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Dermott JA",
+     "authtype": "Author",
+     "clusterid": ""
+    }
+   ],
+   "lastauthor": "Dermott JA",
+   "title": "Bracing and non-surgical management of scoliosis in Canada: Early detection, access inequities, and the need for interdisciplinary reform.",
+   "sorttitle": "bracing and non surgical management of scoliosis in canada early detection access inequities and the need for interdisciplinary reform",
+   "volume": "8",
+   "issue": "2",
+   "pages": "46590",
+   "lang": [
+    "eng"
+   ],
+   "nlmuniqueid": "101775715",
+   "issn": "",
+   "essn": "2561-987X",
+   "pubtype": [
+    "Journal Article"
+   ],
+   "recordstatus": "PubMed",
+   "pubstatus": "258",
+   "articleids": [
+    {
+     "idtype": "pubmed",
+     "idtypen": 1,
+     "value": "41640490"
+    },
+    {
+     "idtype": "pmc",
+     "idtypen": 8,
+     "value": "PMC12867010"
+    },
+    {
+     "idtype": "pmcid",
+     "idtypen": 5,
+     "value": "pmc-id: PMC12867010;"
+    },
+    {
+     "idtype": "doi",
+     "idtypen": 3,
+     "value": "10.33137/cpoj.v8i2.46590"
+    },
+    {
+     "idtype": "pii",
+     "idtypen": 4,
+     "value": "cpoj.v8i2.46590"
+    }
+   ],
+   "history": [
+    {
+     "pubstatus": "medline",
+     "date": "2026/02/05 06:32"
+    },
+    {
+     "pubstatus": "pubmed",
+     "date": "2026/02/05 06:31"
+    },
+    {
+     "pubstatus": "entrez",
+     "date": "2026/02/05 04:27"
+    },
+    {
+     "pubstatus": "pmc-release",
+     "date": "2025/12/31 00:00"
+    }
+   ],
+   "references": [],
+   "attributes": [
+    "Has Abstract"
+   ],
+   "pmcrefcount": 58,
+   "fulljournalname": "Canadian prosthetics & orthotics journal",
+   "elocationid": "doi: 10.33137/cpoj.v8i2.46590",
+   "doctype": "citation",
+   "srccontriblist": [],
+   "booktitle": "",
+   "medium": "",
+   "edition": "",
+   "publisherlocation": "",
+   "publishername": "",
+   "srcdate": "",
+   "reportnumber": "",
+   "availablefromurl": "",
+   "locationlabel": "",
+   "doccontriblist": [],
+   "docdate": "",
+   "bookname": "",
+   "chapter": "",
+   "sortpubdate": "2025/12/31 00:00",
+   "sortfirstauthor": "Lebel A",
+   "vernaculartitle": ""
+  },
+  "41516974": {
+   "uid": "41516974",
+   "pubdate": "2025 Dec 24",
+   "epubdate": "2025 Dec 24",
+   "source": "Healthcare (Basel)",
+   "authors": [
+    {
+     "name": "Boucher J",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Lebel A",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Nguyen DN",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Jacques S",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Charest J",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Shidler S",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Chebaro C",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Huang CH",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Adulovic N",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Carberry J",
+     "authtype": "Author",
+     "clusterid": ""
+    }
+   ],
+   "lastauthor": "Carberry J",
+   "title": "Improvement After Hardware Removal in Post-Fusion Adult AIS: A Unique 35-Year Case Study Using Schroth-Based Physiotherapy and Bracing.",
+   "sorttitle": "improvement after hardware removal in post fusion adult ais a unique 35 year case study using schroth based physiotherapy and bracing",
+   "volume": "14",
+   "issue": "1",
+   "pages": "",
+   "lang": [
+    "eng"
+   ],
+   "nlmuniqueid": "101666525",
+   "issn": "2227-9032",
+   "essn": "2227-9032",
+   "pubtype": [
+    "Case Reports",
+    "Journal Article"
+   ],
+   "recordstatus": "PubMed",
+   "pubstatus": "3",
+   "articleids": [
+    {
+     "idtype": "pubmed",
+     "idtypen": 1,
+     "value": "41516974"
+    },
+    {
+     "idtype": "pmc",
+     "idtypen": 8,
+     "value": "PMC12786178"
+    },
+    {
+     "idtype": "pmcid",
+     "idtypen": 5,
+     "value": "pmc-id: PMC12786178;"
+    },
+    {
+     "idtype": "doi",
+     "idtypen": 3,
+     "value": "10.3390/healthcare14010043"
+    },
+    {
+     "idtype": "pii",
+     "idtypen": 4,
+     "value": "healthcare14010043"
+    }
+   ],
+   "history": [
+    {
+     "pubstatus": "received",
+     "date": "2025/09/09 00:00"
+    },
+    {
+     "pubstatus": "revised",
+     "date": "2025/11/24 00:00"
+    },
+    {
+     "pubstatus": "accepted",
+     "date": "2025/12/06 00:00"
+    },
+    {
+     "pubstatus": "medline",
+     "date": "2026/01/10 06:32"
+    },
+    {
+     "pubstatus": "pubmed",
+     "date": "2026/01/10 06:31"
+    },
+    {
+     "pubstatus": "entrez",
+     "date": "2026/01/10 01:13"
+    },
+    {
+     "pubstatus": "pmc-release",
+     "date": "2025/12/24 00:00"
+    }
+   ],
+   "references": [],
+   "attributes": [
+    "Has Abstract"
+   ],
+   "pmcrefcount": 80,
+   "fulljournalname": "Healthcare (Basel, Switzerland)",
+   "elocationid": "doi: 10.3390/healthcare14010043",
+   "doctype": "citation",
+   "srccontriblist": [],
+   "booktitle": "",
+   "medium": "",
+   "edition": "",
+   "publisherlocation": "",
+   "publishername": "",
+   "srcdate": "",
+   "reportnumber": "",
+   "availablefromurl": "",
+   "locationlabel": "",
+   "doccontriblist": [],
+   "docdate": "",
+   "bookname": "",
+   "chapter": "",
+   "sortpubdate": "2025/12/24 00:00",
+   "sortfirstauthor": "Boucher J",
+   "vernaculartitle": ""
+  },
+  "40842283": {
+   "uid": "40842283",
+   "pubdate": "2026 Mar 27",
+   "epubdate": "",
+   "source": "Eur Heart J Cardiovasc Imaging",
+   "authors": [
+    {
+     "name": "Lechner I",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Carberry J",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Stiermaier T",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Tiller C",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Holzknecht M",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Oberhollenzer F",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Kaser A",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Mair J",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Mayr A",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Feistritzer HJ",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Carrick D",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Dlaska C",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Bauer A",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Thiele H",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Eitel I",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Metzler B",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Berry C",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Reindl M",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Reinstadler SJ",
+     "authtype": "Author",
+     "clusterid": ""
+    }
+   ],
+   "lastauthor": "Reinstadler SJ",
+   "title": "Associations and prognostic implications of myocardial tissue injury stages in ST-elevation myocardial infarction using the Canadian Cardiovascular Society classification.",
+   "sorttitle": "associations and prognostic implications of myocardial tissue injury stages in st elevation myocardial infarction using the canadian cardiovascular society classification",
+   "volume": "27",
+   "issue": "4",
+   "pages": "638-649",
+   "lang": [
+    "eng"
+   ],
+   "nlmuniqueid": "101573788",
+   "issn": "2047-2404",
+   "essn": "2047-2412",
+   "pubtype": [
+    "Journal Article"
+   ],
+   "recordstatus": "PubMed - indexed for MEDLINE",
+   "pubstatus": "4",
+   "articleids": [
+    {
+     "idtype": "pubmed",
+     "idtypen": 1,
+     "value": "40842283"
+    },
+    {
+     "idtype": "pmc",
+     "idtypen": 8,
+     "value": "PMC13021278"
+    },
+    {
+     "idtype": "pmcid",
+     "idtypen": 5,
+     "value": "pmc-id: PMC13021278;"
+    },
+    {
+     "idtype": "doi",
+     "idtypen": 3,
+     "value": "10.1093/ehjci/jeaf250"
+    },
+    {
+     "idtype": "pii",
+     "idtypen": 4,
+     "value": "8239543"
+    }
+   ],
+   "history": [
+    {
+     "pubstatus": "received",
+     "date": "2025/05/12 00:00"
+    },
+    {
+     "pubstatus": "revised",
+     "date": "2025/07/01 00:00"
+    },
+    {
+     "pubstatus": "accepted",
+     "date": "2025/08/15 00:00"
+    },
+    {
+     "pubstatus": "medline",
+     "date": "2026/03/27 03:23"
+    },
+    {
+     "pubstatus": "pubmed",
+     "date": "2025/08/22 08:45"
+    },
+    {
+     "pubstatus": "entrez",
+     "date": "2025/08/22 02:53"
+    },
+    {
+     "pubstatus": "pmc-release",
+     "date": "2025/08/22 00:00"
+    }
+   ],
+   "references": [
+    {
+     "refsource": "Eur Heart J Cardiovasc Imaging. 2026 Mar 27;27(4):650-651. doi: 10.1093/ehjci/jeaf374.",
+     "reftype": "Comment in",
+     "pmid": 41518592,
+     "note": ""
+    }
+   ],
+   "attributes": [
+    "Has Abstract"
+   ],
+   "pmcrefcount": 51,
+   "fulljournalname": "European heart journal. Cardiovascular Imaging",
+   "elocationid": "doi: 10.1093/ehjci/jeaf250",
+   "doctype": "citation",
+   "srccontriblist": [],
+   "booktitle": "",
+   "medium": "",
+   "edition": "",
+   "publisherlocation": "",
+   "publishername": "",
+   "srcdate": "",
+   "reportnumber": "",
+   "availablefromurl": "",
+   "locationlabel": "",
+   "doccontriblist": [],
+   "docdate": "",
+   "bookname": "",
+   "chapter": "",
+   "sortpubdate": "2026/03/27 00:00",
+   "sortfirstauthor": "Lechner I",
+   "vernaculartitle": ""
+  },
+  "40788977": {
+   "uid": "40788977",
+   "pubdate": "2025 Aug 12",
+   "epubdate": "2025 Aug 11",
+   "source": "Circulation",
+   "authors": [
+    {
+     "name": "Berry C",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Carberry J",
+     "authtype": "Author",
+     "clusterid": ""
+    },
+    {
+     "name": "Dharmakumar R",
+     "authtype": "Author",
+     "clusterid": ""
+    }
+   ],
+   "lastauthor": "Dharmakumar R",
+   "title": "Intramyocardial Hemorrhage After Myocardial Infarction: A Prognostic Outcome for Clinical Practice and Trials.",
+   "sorttitle": "intramyocardial hemorrhage after myocardial infarction a prognostic outcome for clinical practice and trials",
+   "volume": "152",
+   "issue": "6",
+   "pages": "349-351",
+   "lang": [
+    "eng"
+   ],
+   "nlmuniqueid": "0147763",
+   "issn": "0009-7322",
+   "essn": "1524-4539",
+   "pubtype": [
+    "Journal Article"
+   ],
+   "recordstatus": "PubMed - in process",
+   "pubstatus": "256",
+   "articleids": [
+    {
+     "idtype": "pubmed",
+     "idtypen": 1,
+     "value": "40788977"
+    },
+    {
+     "idtype": "doi",
+     "idtypen": 3,
+     "value": "10.1161/CIRCULATIONAHA.125.074645"
+    }
+   ],
+   "history": [
+    {
+     "pubstatus": "medline",
+     "date": "2025/08/11 18:28"
+    },
+    {
+     "pubstatus": "pubmed",
+     "date": "2025/08/11 18:28"
+    },
+    {
+     "pubstatus": "entrez",
+     "date": "2025/08/11 14:03"
+    }
+   ],
+   "references": [],
+   "attributes": [],
+   "pmcrefcount": "",
+   "fulljournalname": "Circulation",
+   "elocationid": "doi: 10.1161/CIRCULATIONAHA.125.074645",
+   "doctype": "citation",
+   "srccontriblist": [],
+   "booktitle": "",
+   "medium": "",
+   "edition": "",
+   "publisherlocation": "",
+   "publishername": "",
+   "srcdate": "",
+   "reportnumber": "",
+   "availablefromurl": "",
+   "locationlabel": "",
+   "doccontriblist": [],
+   "docdate": "",
+   "bookname": "",
+   "chapter": "",
+   "sortpubdate": "2025/08/12 00:00",
+   "sortfirstauthor": "Berry C",
+   "vernaculartitle": ""
+  },
+  "99999999": {
+   "uid": "99999999",
+   "error": "cannot get document summary"
+  }
+ }
+}

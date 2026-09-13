@@ -155,3 +155,54 @@ different claim and usually a false one.
 - No credential is required. ORCID's public API answers without one, so
   unlike NCBI there is no identification rule to refuse on. A token is
   optional and only raises the rate ceiling.
+
+## 2026-09-13: The metadata seam batches, and throws rather than answering null
+
+**Decision.** `PublicationMetadataFetcher` gains `summariesForPmids()`, one
+request per hundred PMIDs. Both methods throw `NcbiUnavailable` when NCBI
+could not be asked and `UnexpectedNcbiResponse` when the answer was not a
+summary. Null means one thing only: NCBI answered, and said no such record.
+
+**Why.** Two hundred papers one at a time at three requests a second is over a
+minute per researcher, and a faculty is hours of NCBI traffic for the same
+answer a few dozen requests give. And the old client cached every null for a
+week, including the null it returned for a timeout, so a rate-limit block
+during a nightly run was recorded as "no such paper" until the cache expired.
+That is the failure the whole addon exists to refuse, sitting in its own
+client. Separating "absent" from "could not ask" at the type level is what
+stops it coming back.
+
+**Rejected.** Keeping the per-PMID contract and looping. Simpler seam, and a
+host binding its own client has less to implement, but the traffic is the
+addon's problem on every site it is installed on, not the host's. A host
+that only has a per-PMID client can loop inside its own `summariesForPmids()`.
+
+## 2026-09-13: PubmedSource searches by author string and filters on modification date
+
+**Decision.** `PubmedSource` runs `"{author}"[Author]` through esearch, paged
+with an explicit `retmax`, then summarises every PMID through the metadata
+seam. `since` becomes a `datetype=mdat` window.
+
+**Why.** The author string is the only PubMed handle a host records, and a
+name search is the honest shape of this source: an estimate that every
+namesake shares. The fictional Josiah Carberry's search string returns a real
+cardiologist's papers, which is the whole reason the review queue exists.
+`retmax` is always sent because NCBI's default page is twenty, and twenty
+papers with no error reads as a complete answer for a researcher with
+sixty-three. Modification date rather than publication date, because "since
+the last fetch" has to catch a 2015 paper that PubMed attached a DOI to
+yesterday, and a publication-date window would not.
+
+**Also settled here.**
+
+- A PMID the search returned and the summary endpoint disowned makes the run
+  partial. Two NCBI endpoints disagreeing is not a paper that does not exist.
+- A missing contact email is reported as `RefusedLocally` by the fetch, with
+  `isConfigured()` still true. "This site chose not to use PubMed" and "this
+  site forgot to identify itself" are different findings and get different
+  advice.
+- Authors are names only. E-summary carries no affiliation or ORCID; those
+  come from E-fetch's XML and are a later change, as with ORCID's contributors.
+- ORCID's `[auid]` field in PubMed search is not used yet. It would return
+  ORCID-anchored PubMed records, which are certain rather than estimated, and
+  deserves its own source key rather than being folded into the name search.
