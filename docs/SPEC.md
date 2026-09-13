@@ -159,10 +159,13 @@ ships an optional fieldset for hosts that have none, but never requires its own.
 ### 7.2 Publication entry fields
 
 `title`, `abstract`, `journal`, `volume`, `issue`, `pages`, `publication_date`, `pmid`, `doi`,
-`authors` (ordered, each `{name, affiliation, orcid}`), `researchers` (entries to the configured
+`authors` (ordered, each `{name, affiliation, orcid}`), `researcher` (one entry in the configured
 collection), `source_apis`, `confidence_score` and `confidence_breakdown` (Phase 2),
 `verification_status` (`candidate`, `approved` or `rejected`), `verified_by`, `verified_at`,
-`external_urls`.
+`external_urls`, `possible_duplicates`, `fetched_at`.
+
+**One entry per (paper, researcher).** The claim is about the pair, so the status lives on the pair,
+and two researchers who share a paper have two entries. See DECISIONS for the alternative and its cost.
 
 **Bibliographic fields are stored, not computed.** A public package cannot rely on a host's PubMed
 cache, and computing from PubMed yields nothing for the DOI-only works ORCID returns. Freshness comes
@@ -227,14 +230,18 @@ fetch.
 ## 9. Fetch pipeline
 
 ```
-scholarly:fetch {researcher?} {--source=} {--since=}
-  └─ FetchPublicationsJob per researcher, per source
-       ├─ source->isConfigured()       -> skip, log, mark the run partial
-       ├─ source->fetchForResearcher() -> FetchOutcome (the source takes its own
-       │                                  rate-limit slot, section 6)
+scholarly:fetch {researcher?} {--source=} {--since=} {--sync}
+  └─ FetchPublications job per researcher (every source, so de-duplication
+       │                                   sees them all)
+       ├─ for each source:
+       │    ├─ source->isConfigured()       -> skip, report, mark the run partial
+       │    └─ source->fetchForResearcher() -> FetchOutcome (the source takes its
+       │                                       own rate-limit slot, section 6)
        ├─ de-duplicate (section 7.3)
        ├─ score (Phase 2) or mark candidate (Phase 1)
-       └─ write entry, update scholarly_last_fetched[source]
+       ├─ write entries: rejected untouched, approved keeps its snapshot,
+       │                 candidate refreshed (section 10)
+       └─ scholarly_last_fetched[source] = run start, for sources that completed
 ```
 
 ```php
@@ -434,5 +441,6 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 | Version | Date | Summary |
 |---|---|---|
 | 1.0.0 | 2026-09-13 | Initial specification. |
+| 1.0.3 | 2026-09-13 | One entry per (paper, researcher); `researcher` is singular; the pipeline diagram matches the job. |
 | 1.0.2 | 2026-09-13 | Section 6.1: the metadata seam batches and throws; null means only an absent record. |
 | 1.0.1 | 2026-09-13 | Matched to the code: `fetchForResearcher()` returns `FetchOutcome` and takes a string `since`; ORCID config keys; PHP 8.3 in the matrix; Statamic version the dogfood site runs. |

@@ -206,3 +206,55 @@ yesterday, and a publication-date window would not.
 - ORCID's `[auid]` field in PubMed search is not used yet. It would return
   ORCID-anchored PubMed records, which are certain rather than estimated, and
   deserves its own source key rather than being folded into the name search.
+
+## 2026-09-13: One publication entry per (paper, researcher)
+
+**Decision.** The owned collection holds one entry per pair, with a single
+`researcher` field, its own `verification_status`, `verified_by` and
+`verified_at`. Two researchers who share a paper have two entries.
+
+**Why.** The claim the addon makes is "this paper is this person's work", and
+a verifier's decision is about that pair. An entry shared between two
+researchers with one status means approving it for A silently asserts it for
+B, which blurs exactly the claim the product principle says must not blur. A
+per-pair entry is also the boring one to query: `where researcher = X and
+status = approved` works the same on the Stache and on the Eloquent driver.
+
+**Rejected.** One entry per paper with a `researchers` list and a per-
+researcher status grid, which the spec's field list implied. It keeps one
+bibliographic snapshot, but every read of "approved for X" becomes a search
+inside a grid, which the query builders do not do portably, and every edit to
+the shared snapshot is an edit to every researcher's approved record at once.
+
+**Cost.** Two copies of the snapshot for a shared paper, and a verifier's
+correction on one does not reach the other. Acceptable while the data model is
+0.x; a "same paper" link across pairs can be added without changing this.
+
+## 2026-09-13: The fetch protects a person's work from the machine
+
+**Decision.** What a re-fetch does to an existing entry depends on its status.
+`rejected`: untouched. `approved`: bibliographic fields untouched; only a
+missing DOI or PMID and the source list are added. `candidate`: snapshot
+rewritten. Matching is on DOI then PMID for that researcher, never on title.
+
+**Why.** Rejection durability is the spec's own rule, and its failure looks
+exactly like normal operation. "Edit and confirm" corrects the snapshot, so a
+refresh of an approved entry would undo the correction on the next night.
+Adding an identifier never destroys an edit, so that much is still written.
+
+**Also settled here.**
+
+- `scholarly_last_fetched` on the researcher is a per-source map of the time
+  the run started, advanced only for sources that completed. A source that
+  failed is asked for the same window again next time. A source that is not
+  configured is reported as skipped, makes the run partial, and is not stamped.
+- One job per researcher, not per source: de-duplication needs every source's
+  candidates in one place. The job carries the researcher's id, not the entry.
+- The owned collection is created by `scholarly:install` and by the first
+  fetch that finds it missing. A missing collection at two in the morning is
+  created, not turned into a night of failed jobs. It is never a host's
+  existing collection: if the handle exists, it is used as is.
+- Entries are slugged by their id. A slug from the title collides between two
+  researchers who share a paper, and Statamic writes the file by slug.
+- Title matches within a run are linked both ways in `possible_duplicates`.
+  Matches against entries from earlier runs are not yet detected.
