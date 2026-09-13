@@ -1,0 +1,5 @@
+{"candidates":[
+  {"sourceKey":"orcid","title":"Paper One","doi":"https://doi.org/10.1001/JAMA.2020.1585"},
+  {"sourceKey":"pubmed","title":"Paper One","pmid":"12345"},
+  {"sourceKey":"scopus","title":"Paper One","doi":"10.1001/jama.2020.1585","pmid":12345}
+]}

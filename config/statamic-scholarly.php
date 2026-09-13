@@ -1,0 +1,129 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Researchers
+    |--------------------------------------------------------------------------
+    |
+    | Which collection holds researchers, and which field on it holds each
+    | identifier. The defaults are ONE reasonable naming scheme, not a standard.
+    | Every handle here is expected to differ between sites, and the addon has
+    | to work when they all do.
+    |
+    | A wrong handle fails silently: the field reads empty, no publications are
+    | found, and that is indistinguishable from a researcher who has published
+    | nothing. Check these first when a fetch finds less than you expect.
+    |
+    */
+    'researchers' => [
+        'collection' => 'people',
+        'fields' => [
+            'orcid' => 'orcid_id',
+            'pubmed_author' => 'pubmed_author_id',
+            'scopus_author' => 'scopus_author_id',
+            'researcher_id' => 'researcherid',
+            'google_scholar' => 'google_scholar_author_id',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Publications
+    |--------------------------------------------------------------------------
+    |
+    | The collection this addon creates and owns. It does not adopt a
+    | collection you already have.
+    |
+    */
+    'publications' => [
+        'collection' => 'publications',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | NCBI E-utilities
+    |--------------------------------------------------------------------------
+    |
+    | `email` is REQUIRED and there is no default. NCBI asks every client to
+    | identify itself so they can make contact before blocking a heavy one, and
+    | an addon installed on many sites that skipped this would make all of them
+    | anonymous traffic. Scholarly refuses to query without it rather than
+    | querying anonymously.
+    |
+    | `api_key` is optional and raises the ceiling from three requests a second
+    | to ten. Get one from an NCBI account.
+    |
+    | `verify_pmid_exists_on_validation` makes PMID validation call PubMed to
+    | confirm the record is real. Off by default: it puts a network call in the
+    | middle of form validation, which is a reasonable trade on one site and a
+    | poor default for everyone.
+    |
+    */
+    'ncbi' => [
+        'tool' => 'statamic-scholarly',
+        'email' => env('SCHOLARLY_NCBI_EMAIL'),
+        'api_key' => env('SCHOLARLY_NCBI_API_KEY'),
+        'verify_pmid_exists_on_validation' => false,
+        'cache_ttl_seconds' => 604_800,
+        'request_timeout_seconds' => 10,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sources
+    |--------------------------------------------------------------------------
+    |
+    | A source with no credential disables itself, says so in the run report,
+    | and does not fail the run. It is never silently skipped.
+    |
+    */
+    'sources' => [
+        'orcid' => ['enabled' => true],
+        'pubmed' => ['enabled' => true],
+        'scopus' => ['enabled' => false, 'api_key' => env('SCOPUS_API_KEY')],
+        'web_of_science' => ['enabled' => false, 'api_key' => env('WOS_API_KEY')],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Affiliation patterns
+    |--------------------------------------------------------------------------
+    |
+    | Strings matched against an author's affiliation to raise confidence that a
+    | name-matched paper is really this researcher's.
+    |
+    | Ships EMPTY on purpose. A default naming any real institution would be
+    | wrong for every other site, and quietly so.
+    |
+    */
+    'affiliation_patterns' => [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Scoring
+    |--------------------------------------------------------------------------
+    |
+    | Phase two. A score at or above the threshold approves without review; one
+    | below the floor is discarded; the rest queue for a human.
+    |
+    | These numbers mean nothing until the score is calibrated. An uncalibrated
+    | 0.90 is an arbitrary cut on a weighted sum, not a nine-in-ten confidence.
+    |
+    */
+    'scoring' => [
+        'auto_approve_threshold' => 0.90,
+        'discard_floor' => 0.30,
+    ],
+
+    'schedule' => 'daily',
+
+    'notifications' => [
+        'channels' => ['mail'],
+        'digest' => true,
+    ],
+
+];

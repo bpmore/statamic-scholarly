@@ -1,0 +1,75 @@
+# The suite, on every pull request.
+#
+# Three jobs, and the third is the one that earns its place. A floor in
+# composer.json is a promise about a machine nobody here runs, and the only
+# thing that makes it true is a runner that is that machine. When the lowest
+# job goes red on a commit that changed nothing, a dependency raised its own
+# floor, and that is the moment to raise ours rather than the moment somebody
+# installing the addon finds out.
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Read-only. Nothing here writes to the repository, comments on a pull request,
+# or touches a package registry, so it should not be able to.
+permissions:
+  contents: read
+
+# A second push to the same branch cancels the first. The suite takes seconds
+# and the answer for an overwritten commit is worth nothing.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: PHP ${{ matrix.php }}, ${{ matrix.dependencies }} dependencies
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.4'
+            dependencies: highest
+          - php: '8.3'
+            dependencies: highest
+          - php: '8.2'
+            dependencies: lowest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: json, mbstring
+          coverage: none
+
+      # Before installing, because a malformed manifest on a published package
+      # is otherwise found by Packagist, which is later and in front of an
+      # audience.
+      - name: Check the manifest is well formed
+        run: composer validate --strict
+
+      # There is no composer.lock in this repository and there should not be:
+      # this is a package an application installs, so the application's lock is
+      # the one that matters. Every run here is a fresh resolve against the
+      # current Statamic, which is worth having.
+      - name: Install dependencies
+        if: matrix.dependencies == 'highest'
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      # `--prefer-lowest` alone would take the oldest pre-release of anything
+      # that has one; with `--prefer-stable` it takes the oldest stable, which
+      # is the oldest thing a real install can end up with.
+      - name: Install the oldest dependencies the manifest allows
+        if: matrix.dependencies == 'lowest'
+        run: composer update --prefer-lowest --prefer-stable --prefer-dist --no-interaction --no-progress
+
+      - name: Run the suite
+        run: ./vendor/bin/pest

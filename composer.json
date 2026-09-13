@@ -1,0 +1,61 @@
+{
+    "name": "bpmore/statamic-scholarly",
+    "description": "Aggregates, de-duplicates and routes research publications to verified researcher profiles.",
+    "keywords": ["statamic", "research", "publications", "orcid", "pubmed"],
+    "license": "proprietary",
+    "type": "statamic-addon",
+    "homepage": "https://hada.farm",
+    "authors": [
+        {
+            "name": "Brent Passmore",
+            "homepage": "https://hada.farm"
+        }
+    ],
+    "funding": [
+        {
+            "type": "other",
+            "url": "https://buymeacoffee.com/bpmore"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "ext-json": "*",
+        "statamic/cms": "^6.27"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.11 || ^11.0",
+        "pestphp/pest": "^3.8 || ^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bpmore\\Scholarly\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Bpmore\\Scholarly\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest"
+    },
+    "extra": {
+        "statamic": {
+            "name": "Scholarly",
+            "slug": "statamic-scholarly"
+        },
+        "laravel": {
+            "providers": [
+                "Bpmore\\Scholarly\\ServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
