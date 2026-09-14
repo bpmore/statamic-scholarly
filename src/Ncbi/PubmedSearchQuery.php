@@ -29,6 +29,16 @@ final readonly class PubmedSearchQuery
         private ?DateTimeImmutable $modifiedSince = null,
     ) {}
 
+    public function isWindowed(): bool
+    {
+        return $this->modifiedSince !== null;
+    }
+
+    public function unwindowed(): self
+    {
+        return new self($this->authorString);
+    }
+
     /**
      * The term as PubMed's author field expects it: quoted, tagged.
      *

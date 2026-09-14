@@ -21,10 +21,14 @@ final readonly class FetchOutcome
      * @param  list<SourceFailure>  $failures
      * @param  list<string>  $sourcesRun  Keys of sources that completed
      */
+    /**
+     * @param  array<string, scalar>  $notes  Facts a source learned on the way, keyed by name (e.g. `name_prevalence`)
+     */
     public function __construct(
         public array $candidates = [],
         public array $failures = [],
         public array $sourcesRun = [],
+        public array $notes = [],
     ) {}
 
     /**
@@ -73,16 +77,27 @@ final readonly class FetchOutcome
             [...$this->candidates, ...\array_values($candidates)],
             $this->failures,
             $this->sourcesRun,
+            $this->notes,
         );
     }
 
     public function withFailure(SourceFailure $failure): self
     {
-        return new self($this->candidates, [...$this->failures, $failure], $this->sourcesRun);
+        return new self($this->candidates, [...$this->failures, $failure], $this->sourcesRun, $this->notes);
     }
 
     public function withSourceRun(string $sourceKey): self
     {
-        return new self($this->candidates, $this->failures, [...$this->sourcesRun, $sourceKey]);
+        return new self($this->candidates, $this->failures, [...$this->sourcesRun, $sourceKey], $this->notes);
+    }
+
+    /**
+     * A fact learned on the way that is not a candidate: how many records a
+     * name matched, for one. Kept off the candidates so it cannot be
+     * mistaken for one.
+     */
+    public function withNote(string $key, int|float|string|bool $value): self
+    {
+        return new self($this->candidates, $this->failures, $this->sourcesRun, [...$this->notes, $key => $value]);
     }
 }

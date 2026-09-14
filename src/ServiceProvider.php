@@ -112,6 +112,17 @@ class ServiceProvider extends AddonServiceProvider
             (string) config('statamic-scholarly.researchers.collection', 'people'),
         ));
 
+        $this->app->bind(Scoring\Model::class, Scoring\PriorModel::class);
+
+        $this->app->bind(Scoring\ScoreCandidates::class, function (): Scoring\ScoreCandidates {
+            return new Scoring\ScoreCandidates(
+                $this->app->make(PublicationsCollection::class),
+                $this->app->make(Scoring\FingerprintBuilder::class),
+                $this->app->make(Scoring\Model::class),
+                \array_values(\array_filter((array) config('statamic-scholarly.affiliation_patterns', []), 'is_string')),
+            );
+        });
+
         $this->app->bind(NotifyVerifiers::class, function (): NotifyVerifiers {
             /** @var array<string, mixed> $n */
             $n = (array) config('statamic-scholarly.notifications', []);

@@ -28,6 +28,14 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- Confidence scoring, first part: every candidate carries
+  `confidence_score`, a per-signal `confidence_breakdown`, and a
+  `confidence_state` that says what the number is: `certain` (an ORCID
+  anchor), `uncalibrated` (the shipped prior; an ordering, not a
+  probability) or, later, `calibrated`. Signals: name match, affiliation,
+  co-author overlap with the researcher's certain papers, journal,
+  corroboration, and name prevalence from the PubMed search count. Confirm
+  and reject rescore. Nothing is auto-approved or discarded yet.
 - Candidates now carry author affiliations, author ORCID iDs and the
   abstract: PubMed through `efetch` and ORCID through the bulk works
   endpoint, one request per hundred, cached. If that second request cannot

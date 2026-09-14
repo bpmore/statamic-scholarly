@@ -115,7 +115,7 @@ final class PubmedSource implements PublicationSource
         $query = new PubmedSearchQuery($author, $modifiedSince);
 
         try {
-            $pmids = $this->search($query);
+            [$pmids, $prevalence] = $this->search($query);
             $summaries = $pmids === [] ? [] : $this->metadata->summariesForPmids($pmids);
         } catch (MissingContactEmail $e) {
             return $outcome->withFailure($this->failure(Reason::RefusedLocally, $e->getMessage()));
@@ -123,6 +123,13 @@ final class PubmedSource implements PublicationSource
             return $outcome->withFailure($this->failure(Reason::TransportFailed, $e->getMessage()));
         } catch (UnexpectedNcbiResponse $e) {
             return $outcome->withFailure($this->failure(Reason::UnexpectedResponse, $e->getMessage()));
+        }
+
+        // How many PubMed records the author string matches, across all
+        // time, is how common the name is: the scoring model's prior. A
+        // since window narrows the ids fetched, not this count.
+        if ($prevalence !== null) {
+            $outcome = $outcome->withNote(self::NAME_PREVALENCE_NOTE, $prevalence);
         }
 
         $missing = [];
@@ -181,10 +188,14 @@ final class PubmedSource implements PublicationSource
         return $outcome->isComplete() ? $outcome->withSourceRun($this->sourceKey()) : $outcome;
     }
 
+    public const NAME_PREVALENCE_NOTE = 'name_prevalence';
+
     /**
-     * Every PMID matching the query, across every page.
+     * Every PMID matching the query, across every page, and how many records
+     * the author string matches with no date window (null when the window
+     * was the whole query and the count is the same thing).
      *
-     * @return list<string>
+     * @return array{0: list<string>, 1: int|null}
      *
      * @throws MissingContactEmail
      * @throws NcbiUnavailable
@@ -194,6 +205,7 @@ final class PubmedSource implements PublicationSource
     {
         $pmids = [];
         $retstart = 0;
+        $prevalence = null;
 
         do {
             // Identification is merged before the limiter is touched, so a
@@ -219,11 +231,38 @@ final class PubmedSource implements PublicationSource
             }
 
             $page = EsearchResult::fromDecoded($decoded);
-            $pmids = [...$pmids, ...$page->ids];
-            $retstart = $page->retstart + \count($page->ids);
-        } while ($page->hasMore());
 
-        return \array_values(\array_unique($pmids));
+            // Our own offset, not the page's echo of it. A server (or a
+            // test double) that ignores retstart would otherwise hand back
+            // page one forever, and a queue worker would loop until killed.
+            $new = \array_diff($page->ids, $pmids);
+
+            if ($page->ids !== [] && $new === []) {
+                throw new UnexpectedNcbiResponse(\sprintf('NCBI esearch repeated a page at offset %d', $retstart));
+            }
+
+            $pmids = [...$pmids, ...\array_values($new)];
+            $retstart += \count($page->ids);
+        } while ($page->ids !== [] && $retstart < $page->count);
+
+        if (! $query->isWindowed()) {
+            $prevalence = $page->count;
+        } else {
+            // One more request, without the window, only for the count.
+            $this->limiter->waitForSlot();
+
+            try {
+                $response = Http::timeout($this->timeoutSeconds)->get(EutilsRequest::BASE.'esearch.fcgi', $this->request->query([...$query->unwindowed()->params(0), 'retmax' => 0]));
+                $decoded = $response->successful() ? $response->json() : null;
+                $prevalence = \is_array($decoded) ? EsearchResult::fromDecoded($decoded)->count : null;
+            } catch (ConnectionException|UnexpectedNcbiResponse) {
+                // The count is a prior, not an answer; a run without it is
+                // still complete. It is simply not updated this time.
+                $prevalence = null;
+            }
+        }
+
+        return [\array_values(\array_unique($pmids)), $prevalence];
     }
 
     private function failure(Reason $reason, string $detail): SourceFailure
