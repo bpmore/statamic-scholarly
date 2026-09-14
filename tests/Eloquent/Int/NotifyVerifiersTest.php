@@ -6,6 +6,6 @@ require_once __DIR__.'/../../Cases/NotifyCases.php';
 
 beforeEach(fn () => notifyCasesSetup());
 
-foreach (notifyCases() as $name => $body) {
+foreach ([...notifyCases(), ...webhookCases()] as $name => $body) {
     it($name, $body);
 }

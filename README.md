@@ -108,6 +108,19 @@ SCHOLARLY_VERIFIER_EMAIL=review@example.org   # who gets it when a researcher ha
 With no verifier and no fallback, the command says who could not be told and
 exits non-zero. It never stays quiet about that.
 
+To also POST each digest somewhere (a chat integration, a ticket queue),
+add `webhook` to `notifications.channels` and set:
+
+```
+SCHOLARLY_WEBHOOK_URL=https://example.org/hooks/scholarly
+SCHOLARLY_WEBHOOK_SECRET=a-long-random-string
+```
+
+The body is JSON; `X-Scholarly-Signature` is `sha256=` followed by the
+HMAC-SHA256 of the exact body under the secret. Check it before trusting a
+post. In the control panel, the "Publication review" nav item shows how
+many candidates are waiting.
+
 ## What the confidence number means
 
 Each candidate shows a confidence score and, next to it, a state. Read the

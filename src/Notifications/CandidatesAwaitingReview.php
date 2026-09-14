@@ -40,6 +40,37 @@ final class CandidatesAwaitingReview extends Notification
         return \array_sum(\array_map(static fn (ReviewItem $i): int => $i->waiting, $this->items));
     }
 
+    /**
+     * The same digest as the mail, as data.
+     *
+     * @return array<string, mixed>
+     */
+    public function toWebhook(mixed $notifiable): array
+    {
+        $recipient = null;
+
+        if (\is_object($notifiable) && \method_exists($notifiable, 'email')) {
+            $recipient = $notifiable->email();
+        } elseif (\is_object($notifiable) && isset($notifiable->routes['mail'])) {
+            $recipient = $notifiable->routes['mail'];
+        }
+
+        return [
+            'event' => 'candidates_awaiting_review',
+            'sent_at' => \date(DATE_ATOM),
+            'recipient' => $recipient,
+            'total_waiting' => $this->totalWaiting(),
+            'review_url' => $this->reviewUrl,
+            'researchers' => \array_map(static fn (ReviewItem $i): array => [
+                'id' => $i->researcherId,
+                'name' => $i->researcherName,
+                'waiting' => $i->waiting,
+                'last_run_complete' => $i->lastRunComplete,
+                'last_run_summary' => $i->lastRunSummary,
+            ], $this->items),
+        ];
+    }
+
     public function toMail(mixed $notifiable): MailMessage
     {
         $total = $this->totalWaiting();

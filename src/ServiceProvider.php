@@ -14,6 +14,7 @@ use Bpmore\Scholarly\Orcid\OrcidSource;
 use Bpmore\Scholarly\Publications\PublicationsCollection;
 use Bpmore\Scholarly\Researchers\ResearcherFieldMap;
 use Bpmore\Scholarly\Verification\Verifier;
+use Bpmore\Scholarly\Verification\WaitingCount;
 use Illuminate\Console\Scheduling\Schedule;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
@@ -158,6 +159,13 @@ class ServiceProvider extends AddonServiceProvider
             /** @var array<string, mixed> $n */
             $n = (array) config('statamic-scholarly.notifications', []);
             $channels = \array_values(\array_filter((array) ($n['channels'] ?? ['mail']), 'is_string'));
+            $webhookUrl = \is_string($n['webhook_url'] ?? null) ? \trim($n['webhook_url']) : '';
+
+            // "webhook" with no URL would be a channel to nowhere, and a
+            // silent one. It is dropped, and NotifyVerifiers says so once.
+            if ($webhookUrl === '') {
+                $channels = \array_values(\array_filter($channels, static fn (string $c): bool => $c !== 'webhook'));
+            }
 
             return new NotifyVerifiers(
                 $this->app->make(PublicationsCollection::class),
@@ -203,6 +211,19 @@ class ServiceProvider extends AddonServiceProvider
 
     public function bootAddon(): void
     {
+        // The webhook channel exists only when a URL is configured; with
+        // none, "webhook" in the channels list is dropped by NotifyVerifiers
+        // rather than sent nowhere.
+        \Illuminate\Support\Facades\Notification::extend('webhook', function (): Notifications\WebhookChannel {
+            /** @var array<string, mixed> $n */
+            $n = (array) config('statamic-scholarly.notifications', []);
+
+            return new Notifications\WebhookChannel(
+                \is_string($n['webhook_url'] ?? null) ? $n['webhook_url'] : '',
+                \is_string($n['webhook_secret'] ?? null) ? $n['webhook_secret'] : null,
+            );
+        });
+
         Permission::extend(function (): void {
             Permission::group('scholarly', 'Scholarly', function (): void {
                 Permission::register(Verifier::PERMISSION)
@@ -216,8 +237,23 @@ class ServiceProvider extends AddonServiceProvider
         // Nothing here is a widget of its own.
         Nav::extend(function ($nav): void {
             $handle = (string) config('statamic-scholarly.publications.collection', 'publications');
+            $label = __('Publication review');
 
-            $nav->content(__('Publication review'))
+            // The count of candidates waiting, in the nav, is the nearest
+            // thing to a bell Statamic's own navigation offers. One count
+            // query per control-panel request, only for users who can act
+            // on it, and none of it touches the network.
+            $user = \Statamic\Facades\User::current();
+
+            if ($user !== null && $user->can(Verifier::PERMISSION)) {
+                $waiting = $this->app->make(WaitingCount::class)();
+
+                if ($waiting > 0) {
+                    $label .= ' ('.$waiting.')';
+                }
+            }
+
+            $nav->content($label)
                 ->route('collections.show', $handle)
                 ->icon('clipboard-check')
                 ->can(Verifier::PERMISSION);
