@@ -172,7 +172,7 @@ class ServiceProvider extends AddonServiceProvider
 
             $nav->content(__('Publication review'))
                 ->route('collections.show', $handle)
-                ->icon('checkmark-circle')
+                ->icon('clipboard-check')
                 ->can(Verifier::PERMISSION);
         });
     }

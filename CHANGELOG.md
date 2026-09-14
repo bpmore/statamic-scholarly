@@ -12,6 +12,9 @@ have verified entries by hand and cannot re-verify them.
 
 ### Fixed
 
+- The Confirm, Reject and Defer actions and the review nav item named icons
+  that do not exist in Statamic 6, so the control panel logged a warning for
+  each and drew nothing.
 - Under the Eloquent entry driver: the writer no longer sets entry ids
   (which fought an auto-increment column), researcher ids are cast to
   strings everywhere the driver may hand out integers, and the tag matches a
