@@ -120,10 +120,17 @@ return [
     | These numbers mean nothing until the score is calibrated. An uncalibrated
     | 0.90 is an arbitrary cut on a weighted sum, not a nine-in-ten confidence.
     |
+    | `scholarly:calibrate` fits the model to this site's confirm and reject
+    | decisions, pooled across researchers, and refuses below `min_labels`
+    | decisions with `min_labels_per_class` of each kind. Until then every
+    | candidate is scored by the shipped prior and says "uncalibrated".
+    |
     */
     'scoring' => [
         'auto_approve_threshold' => 0.90,
         'discard_floor' => 0.30,
+        'min_labels' => 30,
+        'min_labels_per_class' => 10,
     ],
 
     'schedule' => 'daily',

@@ -38,6 +38,7 @@ class ServiceProvider extends AddonServiceProvider
         Commands\Fetch::class,
         Commands\Install::class,
         Commands\Notify::class,
+        Commands\Calibrate::class,
     ];
 
     /**
@@ -112,13 +113,27 @@ class ServiceProvider extends AddonServiceProvider
             (string) config('statamic-scholarly.researchers.collection', 'people'),
         ));
 
-        $this->app->bind(Scoring\Model::class, Scoring\PriorModel::class);
+        // The fitted model when this site has one, the shipped prior when
+        // it does not. Read on every resolve so scholarly:calibrate's result
+        // is used by the next job without a restart.
+        $this->app->bind(Scoring\Model::class, function (): Scoring\Model {
+            return $this->app->make(Scoring\ModelStore::class)->load() ?? Scoring\LogisticModel::prior();
+        });
 
         $this->app->bind(Scoring\ScoreCandidates::class, function (): Scoring\ScoreCandidates {
             return new Scoring\ScoreCandidates(
                 $this->app->make(PublicationsCollection::class),
                 $this->app->make(Scoring\FingerprintBuilder::class),
                 $this->app->make(Scoring\Model::class),
+                \array_values(\array_filter((array) config('statamic-scholarly.affiliation_patterns', []), 'is_string')),
+            );
+        });
+
+        $this->app->bind(Scoring\TrainingSet::class, function (): Scoring\TrainingSet {
+            return new Scoring\TrainingSet(
+                $this->app->make(PublicationsCollection::class),
+                $this->app->make(ResearcherFieldMap::class),
+                (string) config('statamic-scholarly.researchers.collection', 'people'),
                 \array_values(\array_filter((array) config('statamic-scholarly.affiliation_patterns', []), 'is_string')),
             );
         });

@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Bpmore\Scholarly\Publications\CandidatePublication;
 use Bpmore\Scholarly\Scoring\Fingerprint;
 use Bpmore\Scholarly\Scoring\NameMatch;
-use Bpmore\Scholarly\Scoring\PriorModel;
+use Bpmore\Scholarly\Scoring\LogisticModel;
 use Bpmore\Scholarly\Scoring\Signals;
 
 function carberryFingerprint(): Fingerprint
@@ -81,12 +81,12 @@ it('scores nothing for a paper where no author line matches the name', function 
     $s = Signals::compute(scoredCandidate([['name' => 'Berry C'], ['name' => 'Lechner I']], 'Circulation'), $f, ['glasgow'], 5);
 
     expect($s->nameMatch)->toBe(NameMatch::None)
-        ->and((new PriorModel)->score($s))->toBe(0.0);
+        ->and(LogisticModel::prior()->score($s))->toBe(0.0);
 });
 
 it('orders the prior the way the spec expects: co-authors above affiliation, common names below rare ones', function (): void {
     $f = carberryFingerprint();
-    $model = new PriorModel;
+    $model = LogisticModel::prior();
 
     $bare = $model->score(Signals::compute(scoredCandidate([['name' => 'Carberry J']]), $f, [], null));
     $withAffiliation = $model->score(Signals::compute(scoredCandidate([['name' => 'Carberry J', 'affiliation' => 'British Heart Foundation Glasgow']]), $f, [], null));

@@ -444,3 +444,37 @@ free, current and specific to the exact author string.
 across researchers, per researcher, or both), how many labels it needs
 before the state may say `calibrated`, and what "discard" does to an entry.
 Those are product decisions and are put to the owner rather than made here.
+
+## 2026-09-14: Calibration is pooled, pulled toward the prior, and refuses to overclaim
+
+**Decision.** `scholarly:calibrate` fits the same logistic terms the prior
+uses to every decision on the site: approved entries and ORCID-anchored
+candidates as positives, rejected entries as negatives, pooled across
+researchers. The fit is L2-penalised toward the PRIOR rather than toward
+zero, so with no decisions it is the prior and with few it barely moves.
+It refuses to save below `scoring.min_labels` (30) decisions with
+`min_labels_per_class` (10) of each kind, and refuses when its
+cross-validated Brier score is worse than the prior's. The report prints
+reliability bins ("predicted 0.90 to 1.00: observed 0.87") so "0.90 means
+nine in ten" is a number a person can read, not a claim. The model is one
+JSON file on the local disk; a cache flush cannot un-calibrate a site.
+
+**Why pooled.** Most researchers never make enough decisions to fit anything
+of their own; the prevalence term already carries the per-person adjustment.
+Chosen by the owner from the three options put to them.
+
+**Why leave-one-out.** A certain paper's co-authors are in the fingerprint
+because it is certain. Measured against that fingerprint, every positive
+would show perfect overlap and the model would learn that certain papers
+have perfect overlap, which is circular. Each example's signals are
+computed against the other certain papers only.
+
+**Rejected.** Fitting from zero (a handful of decisions would swing every
+weight); calling the fit calibrated regardless of how many decisions it
+saw (the state field would lie); storing the model in the cache.
+
+**Still open, put to the owner.** Whether anything ACTS on a calibrated
+score: the spec's auto-approve band conflicts with the README's promise that
+nothing reaches a public page without a person, and "discard" has no defined
+effect on an entry. `auto_approve_threshold` and `discard_floor` remain
+inert until that is decided.

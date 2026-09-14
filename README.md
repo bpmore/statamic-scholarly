@@ -94,6 +94,13 @@ with, your affiliation, a rare name), the number is not a probability. Open
 the entry to see why it scored as it did. Nothing is approved or discarded
 on the score.
 
+Once your verifiers have made thirty or so decisions (at least ten each
+way), run `php please scholarly:calibrate`. It fits the weights to those
+decisions, prints how often a 0.90 was actually right, and, if the fit
+beats the shipped weights, saves it: candidates then say `calibrated` and
+the number is a probability. `--dry-run` reports without saving;
+`--forget` goes back to the shipped weights.
+
 ## Verifying
 
 Give a role the **Verify publications** permission. "Publication review" in

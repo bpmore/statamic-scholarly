@@ -156,3 +156,111 @@ function scoringCases(): array
         },
     ];
 }
+
+/**
+ * Calibration on entries, run against the Stache and the Eloquent driver.
+ *
+ * @return array<string, Closure(): void>
+ */
+function calibrationCases(): array
+{
+    return [
+        'refuses to calibrate below the configured number of decisions, and says so' => function (): void {
+            $researcher = scoringResearcher();
+            app(PublicationsCollection::class)->ensure();
+            decide($researcher, 'approved', 3);
+            decide($researcher, 'rejected', 3);
+
+            $this->artisan('scholarly:calibrate')
+                ->expectsOutputToContain('Decisions: 3 positive, 3 negative, from 1 researcher(s).')
+                ->expectsOutputToContain('Not enough to calibrate')
+                ->assertFailed();
+
+            expect(app(\Bpmore\Scholarly\Scoring\ModelStore::class)->load())->toBeNull()
+                ->and(app(\Bpmore\Scholarly\Scoring\Model::class)->state())->toBe('uncalibrated');
+        },
+
+        'fits from pooled decisions, saves the model, and rescores every candidate as calibrated' => function (): void {
+            config()->set('statamic-scholarly.scoring.min_labels', 20);
+            config()->set('statamic-scholarly.scoring.min_labels_per_class', 8);
+            app(PublicationsCollection::class)->ensure();
+
+            // Two researchers pool. Their decisions agree with the prior's
+            // shape, so the fit cannot do worse than the prior and is saved.
+            $a = scoringResearcher();
+            $b = Entry::make()->collection('faculty')->slug('b')->data(['title' => 'Bea Quinn', 'ncbi_author_query' => 'Quinn B']);
+            $b->save();
+
+            decide($a, 'approved', 8, ['Berry C', 'Lechner I']);
+            decide($a, 'rejected', 6, ['Nobody X']);
+            decide($b, 'approved', 4, ['Smith J']);
+            decide($b, 'rejected', 4, ['Other Y']);
+
+            $candidate = Entry::make()->collection(SCORE_PUBS)->slug('open-candidate')->data([
+                'title' => 'Open candidate', 'pmid' => '999', 'verification_status' => 'candidate',
+                'researchers' => [(string) $a->id()], 'authors' => [['name' => 'Carberry J'], ['name' => 'Berry C']],
+            ]);
+            $candidate->save();
+
+            $this->artisan('scholarly:calibrate')
+                ->expectsOutputToContain('Decisions: 12 positive, 10 negative, from 2 researcher(s).')
+                ->expectsOutputToContain('Model saved.')
+                ->assertSuccessful();
+
+            $model = app(\Bpmore\Scholarly\Scoring\ModelStore::class)->load();
+
+            expect($model)->not->toBeNull()
+                ->and($model->state())->toBe('calibrated')
+                ->and($model->meta['positives'])->toBe(12)
+                ->and(app(\Bpmore\Scholarly\Scoring\Model::class)->state())->toBe('calibrated');
+
+            $rescored = Entry::find($candidate->id());
+
+            expect($rescored->get('confidence_state'))->toBe('calibrated')
+                ->and($rescored->get('confidence_score'))->not->toBeNull();
+
+            $this->artisan('scholarly:calibrate', ['--forget' => true])->assertSuccessful();
+
+            expect(app(\Bpmore\Scholarly\Scoring\ModelStore::class)->load())->toBeNull()
+                ->and(Entry::find($candidate->id())->get('confidence_state'))->toBe('uncalibrated');
+        },
+
+        'learns from a decided paper without letting it see its own co-authors' => function (): void {
+            // Leave-one-out: the only approved paper's co-authors must not
+            // count as overlap for that paper. If they did, every positive
+            // would show full overlap and the model would learn that.
+            $researcher = scoringResearcher();
+            app(PublicationsCollection::class)->ensure();
+            decide($researcher, 'approved', 1, ['Berry C']);
+
+            $set = app(\Bpmore\Scholarly\Scoring\TrainingSet::class)->build();
+
+            expect($set['positives'])->toBe(1)
+                ->and($set['examples'][0]->vector['coauthor_overlap'])->toBe(0.0)
+                ->and($set['examples'][0]->vector['name_full'])->toBe(1.0);
+        },
+    ];
+}
+
+/**
+ * @param  list<string>  $coauthors
+ */
+function decide(\Statamic\Contracts\Entries\Entry $researcher, string $status, int $count, array $coauthors = ['Berry C']): void
+{
+    static $n = 0;
+
+    for ($i = 0; $i < $count; $i++) {
+        $n++;
+        $authors = [['name' => $researcher->get('ncbi_author_query')]];
+
+        foreach ($coauthors as $co) {
+            $authors[] = ['name' => $co];
+        }
+
+        $entry = Entry::make()->collection(SCORE_PUBS)->slug('decided-'.$n)->data([
+            'title' => 'Decided '.$n, 'pmid' => (string) (1000 + $n), 'verification_status' => $status,
+            'researchers' => [(string) $researcher->id()], 'authors' => $authors, 'source_apis' => ['pubmed'],
+        ]);
+        $entry->save();
+    }
+}
