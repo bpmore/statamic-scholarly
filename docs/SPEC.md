@@ -294,8 +294,9 @@ control panel, because that explanation is what makes auto-routing trustworthy.
 **Built so far:** signals, breakdown, and a `confidence_state` of `certain`, `uncalibrated` or
 `calibrated` that copy and routing read before the number; and `scholarly:calibrate`, pooled across
 researchers and pulled toward the prior, with cross-validated reliability; and auto-approval at the
-threshold on a certain anchor or a calibrated probability, never on the prior (DECISIONS,
-2026-09-14). The discard floor is not acted on.
+threshold on a certain anchor or a calibrated probability, never on the prior; and the discard floor,
+which sets a calibrated candidate aside (kept, unmailed, filterable) rather than deleting it
+(DECISIONS, 2026-09-14). All three bands are built.
 
 ## 10. Verification workflow
 
@@ -460,6 +461,7 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 | Version | Date | Summary |
 |---|---|---|
 | 1.0.0 | 2026-09-13 | Initial specification. |
+| 1.0.11 | 2026-09-14 | Section 9.1: the discard floor as built; all three bands in. |
 | 1.0.10 | 2026-09-14 | Section 9.1: auto-approval built; discard still open. |
 | 1.0.9 | 2026-09-14 | Section 9.1: calibration built; acting on the score is open. |
 | 1.0.8 | 2026-09-14 | Section 9.1: what of scoring is built, and the state field. |

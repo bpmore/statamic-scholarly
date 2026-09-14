@@ -28,6 +28,11 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- The discard floor: a candidate whose calibrated probability is below
+  `scoring.discard_floor` is set aside (`discarded_at`): still a candidate,
+  left out of the digest, filterable in the listing, never deleted, and
+  asked about again if a later rescoring lifts it. The prior never sets
+  anything aside.
 - Auto-approval: with `scoring.auto_approve` on, a candidate whose number
   means something (an ORCID anchor, or a calibrated probability) and is at
   or above `auto_approve_threshold` is approved by the scorer, marked

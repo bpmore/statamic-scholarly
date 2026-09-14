@@ -122,7 +122,12 @@ return [
     | in ten. An auto-approved entry says so (`auto_approved`, no verifier)
     | and a person can still reject it.
     |
-    | `discard_floor` is not acted on yet.
+    | `discard_floor` sets a candidate aside when a calibrated probability is
+    | below it: still a candidate, still confirmable, but left out of the
+    | digest mail and filterable out of the queue ("Set aside on score"),
+    | so a common name does not bury a verifier. Never deleted, and asked
+    | about again if a later rescoring lifts it above the floor. Null or 0
+    | turns it off. The prior never sets anything aside.
     |
     | `scholarly:calibrate` fits the model to this site's confirm and reject
     | decisions, pooled across researchers, and refuses below `min_labels`

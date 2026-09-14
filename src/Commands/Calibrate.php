@@ -111,13 +111,20 @@ final class Calibrate extends Command
         $scorer = app(ScoreCandidates::class);
         $collection = (string) config('statamic-scholarly.researchers.collection');
         $approved = 0;
+        $setAside = 0;
 
         foreach (Entry::query()->where('collection', $collection)->get() as $researcher) {
-            $approved += $scorer->forResearcher($researcher)->autoApproved;
+            $report = $scorer->forResearcher($researcher);
+            $approved += $report->autoApproved;
+            $setAside += $report->setAside;
         }
 
         if ($approved > 0) {
             $this->warn(\sprintf('%d candidate(s) approved on score and now public. Each says "Approved on score" and can be rejected.', $approved));
+        }
+
+        if ($setAside > 0) {
+            $this->line(\sprintf('%d candidate(s) set aside below the floor: kept, not mailed, filter "Set aside on score" to see them.', $setAside));
         }
     }
 

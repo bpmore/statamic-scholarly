@@ -102,6 +102,12 @@ researcher's own ORCID iD on the paper, or a calibrated 0.90. The shipped
 weights never approve anything. An approved-on-score entry says so in the
 listing and a person can reject it.
 
+Below `discard_floor` (0.30 by default), a calibrated candidate is set
+aside: still in the collection, still confirmable, but left out of the
+digest and filterable out of the queue with "Set aside on score". Nothing is
+deleted, and a candidate that rises above the floor later is asked about
+again.
+
 Once your verifiers have made thirty or so decisions (at least ten each
 way), run `php please scholarly:calibrate`. It fits the weights to those
 decisions, prints how often a 0.90 was actually right, and, if the fit

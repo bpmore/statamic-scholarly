@@ -511,3 +511,22 @@ existed and is not made more certain by one.
   because of an upgrade.
 - `discard_floor` is still inert. What "discard" does to an entry is not
   decided.
+
+## 2026-09-14: Below the floor is "set aside", never deleted
+
+**Decision.** With a calibrated probability below `scoring.discard_floor`,
+the scorer stamps `discarded_at` on the candidate. It stays a candidate:
+still in the collection, still confirmable, still rescored. It is left out
+of the digest mail and can be filtered out of the queue ("Set aside on
+score"). A later rescoring that lifts it above the floor clears the stamp
+and it is asked about again; confirm and reject clear it too. The prior
+never sets anything aside, and certain never does.
+
+**Why.** The floor exists so a common name does not bury a verifier under
+namesakes' papers. Deleting them would be silent: a discard nobody can see
+cannot be reversed, and the score that discarded it was wrong one time in
+ten at best. Setting aside gets the queue relief with nothing lost.
+
+**Rejected.** A `discarded` status of its own. It would be a fourth state
+the tag, the notification and the writer each have to know about, for a
+distinction that is really "candidate, but quiet". Also deletion, above.
