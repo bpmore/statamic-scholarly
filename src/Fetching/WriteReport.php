@@ -21,6 +21,7 @@ final readonly class WriteReport
      * @param  int  $suppressed  Rejected entries the source returned again
      * @param  int  $reopened  Approved entries sent back to review because this researcher was not on them
      * @param  int  $titleMatched  Entries written this run that share a title with another entry and no identifier
+     * @param  list<string>  $candidateIds  Ids of entries this run left as candidates (created, refreshed or reopened)
      */
     public function __construct(
         public int $created = 0,
@@ -29,6 +30,7 @@ final readonly class WriteReport
         public int $suppressed = 0,
         public int $reopened = 0,
         public int $titleMatched = 0,
+        public array $candidateIds = [],
     ) {}
 
     public function total(): int

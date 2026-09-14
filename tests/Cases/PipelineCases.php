@@ -37,7 +37,7 @@ function pipeline(FakeSource ...$sources): FetchForResearcher
 {
     $collection = app(PublicationsCollection::class);
 
-    return new FetchForResearcher(new SourceRegistry(...$sources), new Deduplicator, new PublicationWriter($collection), $collection);
+    return new FetchForResearcher(new SourceRegistry(...$sources), new Deduplicator, new PublicationWriter($collection), $collection, app(\Bpmore\Scholarly\Scoring\ScoreCandidates::class));
 }
 
 function found(string $key, CandidatePublication ...$candidates): FetchOutcome
@@ -59,6 +59,10 @@ function publicationsFor(\Statamic\Contracts\Entries\Entry $researcher): array
  */
 function pipelineCasesSetup(): void
 {
+    // These cases are about writing. Scoring runs after every write, and
+    // with auto-approval on an ORCID-sourced candidate would be approved
+    // before the assertions look at it; that behaviour has its own cases.
+    config()->set('statamic-scholarly.scoring.auto_approve', false);
     config()->set('statamic-scholarly.researchers.collection', RESEARCHERS);
     config()->set('statamic-scholarly.publications.collection', PUBLICATIONS);
     Collection::make(RESEARCHERS)->save();

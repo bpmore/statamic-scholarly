@@ -39,6 +39,7 @@ class ServiceProvider extends AddonServiceProvider
         Commands\Install::class,
         Commands\Notify::class,
         Commands\Calibrate::class,
+        Commands\Import::class,
     ];
 
     /**

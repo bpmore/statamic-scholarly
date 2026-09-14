@@ -27,7 +27,7 @@ final class Verifier
 
     public function __construct(
         private readonly PublicationsCollection $collection,
-        private readonly ?ScoreCandidates $scorer = null,
+        private readonly ScoreCandidates $scorer,
     ) {}
 
     /**
@@ -94,10 +94,6 @@ final class Verifier
 
     private function rescore(Entry $entry): void
     {
-        if ($this->scorer === null) {
-            return;
-        }
-
         foreach ((array) $entry->get('researchers', []) as $id) {
             $researcher = \is_string($id) || \is_int($id) ? EntryFacade::find((string) $id) : null;
 
