@@ -82,7 +82,7 @@ final class FetchForResearcher
             }
         }
 
-        $report = new RunReport($researcher->id(), $outcomes, $skipped, $written, $titleMatches);
+        $report = new RunReport((string) $researcher->id(), $outcomes, $skipped, $written, $titleMatches);
 
         $this->stamp($researcher, $stamps, $report, $startedAt);
         $this->log($researcher, $report);
@@ -116,7 +116,7 @@ final class FetchForResearcher
 
     private function log(EntryContract $researcher, RunReport $report): void
     {
-        $context = ['researcher' => $researcher->id(), 'report' => $report->summary()];
+        $context = ['researcher' => (string) $researcher->id(), 'report' => $report->summary()];
 
         if ($report->isComplete()) {
             Log::info('Scholarly fetched publications.', $context);

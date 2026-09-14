@@ -10,3 +10,5 @@ declare(strict_types=1);
  */
 
 uses(Bpmore\Scholarly\Tests\TestCase::class)->in('Feature');
+uses(Bpmore\Scholarly\Tests\EloquentTestCase::class)->in('Eloquent/Uuid');
+uses(Bpmore\Scholarly\Tests\EloquentIntTestCase::class)->in('Eloquent/Int');

@@ -47,7 +47,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: json, mbstring
+          extensions: json, mbstring, pdo_sqlite, sqlite3
           coverage: none
 
       # Before installing, because a malformed manifest on a published package

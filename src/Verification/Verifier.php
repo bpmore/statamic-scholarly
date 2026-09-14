@@ -87,7 +87,7 @@ final class Verifier
         if (! $this->isPublication($entry)) {
             throw new InvalidArgumentException(\sprintf(
                 'Entry %s is in collection "%s", not the publications collection "%s".',
-                $entry->id(),
+                (string) $entry->id(),
                 $entry->collectionHandle(),
                 $this->collection->handle(),
             ));

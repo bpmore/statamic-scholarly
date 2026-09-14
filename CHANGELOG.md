@@ -12,6 +12,11 @@ have verified entries by hand and cannot re-verify them.
 
 ### Fixed
 
+- Under the Eloquent entry driver: the writer no longer sets entry ids
+  (which fought an auto-increment column), researcher ids are cast to
+  strings everywhere the driver may hand out integers, and the tag matches a
+  researcher id stored as either a string or an integer. The suite now runs
+  under the Stache and under both Eloquent id shapes.
 - The E-summary client cached a timeout or a refused request as a missing
   record for a week. Only a miss NCBI reports is recorded now.
 

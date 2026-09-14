@@ -64,6 +64,8 @@ final class NotifyVerifiers
         $unrouted = [];
 
         foreach ($waitingByResearcher as $researcherId => $waiting) {
+            // Array keys: PHP turns a numeric-string id into an int.
+            $researcherId = (string) $researcherId;
             $researcher = Entry::find($researcherId);
 
             if ($researcher === null) {
