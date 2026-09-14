@@ -38,6 +38,7 @@ final class Calibrate extends Command
             $store->forget();
             $this->rescoreAll();
             $this->info('Fitted model removed. Every candidate is scored by the prior again, state "uncalibrated".');
+            $this->line('Entries approved on the removed model stay approved and still say "Approved on score"; filter on that to review them.');
 
             return self::SUCCESS;
         }
@@ -109,9 +110,14 @@ final class Calibrate extends Command
     {
         $scorer = app(ScoreCandidates::class);
         $collection = (string) config('statamic-scholarly.researchers.collection');
+        $approved = 0;
 
         foreach (Entry::query()->where('collection', $collection)->get() as $researcher) {
-            $scorer->forResearcher($researcher);
+            $approved += $scorer->forResearcher($researcher)->autoApproved;
+        }
+
+        if ($approved > 0) {
+            $this->warn(\sprintf('%d candidate(s) approved on score and now public. Each says "Approved on score" and can be rejected.', $approved));
         }
     }
 

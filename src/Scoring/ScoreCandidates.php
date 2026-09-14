@@ -22,6 +22,10 @@ use Statamic\Facades\Entry;
  *
  * Only candidates are scored. An approved or rejected entry is a person's
  * decision, and a number next to it would look like a second opinion.
+ *
+ * A candidate at or above the auto-approve threshold is approved here, if
+ * the site has that switched on and the number is one that means
+ * something (see approves()).
  */
 final class ScoreCandidates
 {
@@ -29,18 +33,17 @@ final class ScoreCandidates
 
     /**
      * @param  list<string>  $affiliationPatterns
+     * @param  float|null  $autoApproveAt  Approve at or above this, or null to never approve on a score
      */
     public function __construct(
         private readonly PublicationsCollection $collection,
         private readonly FingerprintBuilder $fingerprints,
         private readonly Model $model,
         private readonly array $affiliationPatterns = [],
+        private readonly ?float $autoApproveAt = null,
     ) {}
 
-    /**
-     * @return int Candidates scored
-     */
-    public function forResearcher(EntryContract $researcher): int
+    public function forResearcher(EntryContract $researcher): ScoringReport
     {
         $fingerprint = $this->fingerprints->build($researcher);
         $prevalence = $researcher->get(self::PREVALENCE_FIELD);
@@ -54,16 +57,23 @@ final class ScoreCandidates
             ->filter(fn (EntryContract $e): bool => \in_array($id, \array_map('strval', (array) $e->get('researchers', [])), true));
 
         $scored = 0;
+        $approved = 0;
 
         foreach ($candidates as $entry) {
-            $this->score($entry, $fingerprint, $prevalence);
+            if ($this->score($entry, $fingerprint, $prevalence)) {
+                $approved++;
+            }
+
             $scored++;
         }
 
-        return $scored;
+        return new ScoringReport($scored, $approved);
     }
 
-    private function score(EntryContract $entry, Fingerprint $fingerprint, ?int $prevalence): void
+    /**
+     * @return bool Whether the candidate was approved on its score
+     */
+    private function score(EntryContract $entry, Fingerprint $fingerprint, ?int $prevalence): bool
     {
         $sources = \array_values(\array_filter((array) $entry->get('source_apis', []), 'is_string'));
 
@@ -98,12 +108,46 @@ final class ScoreCandidates
 
         $breakdown['fingerprint_papers'] = (string) $fingerprint->certainPapers;
 
-        $entry->merge([
+        $values = [
             'confidence_score' => $score,
             'confidence_state' => $state,
             'confidence_breakdown' => $breakdown,
             'scored_at' => \date(DATE_ATOM),
-        ]);
+        ];
+
+        $approve = $this->approves($score, $state);
+
+        if ($approve) {
+            // Approved by the score, and the record says so: no verifier,
+            // `auto_approved` set, the breakdown kept as the reason. A person
+            // can still reject it, and that rejection is durable.
+            $values += [
+                'verification_status' => 'approved',
+                'verified_by' => null,
+                'verified_at' => \date(DATE_ATOM),
+                'auto_approved' => true,
+                'deferred_at' => null,
+            ];
+        }
+
+        $entry->merge($values);
         $entry->saveQuietly();
+
+        return $approve;
+    }
+
+    /**
+     * The threshold applies to a number that means something: a certain
+     * anchor (1.0 by definition) or a calibrated probability. It never
+     * applies to the prior, whose 0.95 is an ordering, not nineteen in
+     * twenty.
+     */
+    private function approves(float $score, string $state): bool
+    {
+        if ($this->autoApproveAt === null) {
+            return false;
+        }
+
+        return \in_array($state, ['certain', 'calibrated'], true) && $score >= $this->autoApproveAt;
     }
 }

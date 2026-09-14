@@ -104,7 +104,7 @@ function commandCases(): array
         $this->artisan('scholarly:fetch', ['--sync' => true])
             // One expectation: both live on one line, and each expectation
             // consumes the line it matched.
-            ->expectsOutputToContain('Ada: PARTIAL: 1 candidate(s) from orcid; 1 created, 0 refreshed, 0 approved kept, 0 rejected suppressed; failed pubmed: transport failed (HTTP 503)')
+            ->expectsOutputToContain('Ada: PARTIAL: 1 candidate(s) from orcid; 1 created, 0 refreshed, 0 approved kept, 0 rejected suppressed; 1 approved on score; failed pubmed: transport failed (HTTP 503)')
             ->assertFailed();
 
         expect(Entry::query()->where('collection', 'research_outputs')->get()->filter(fn ($e) => in_array((string) $a->id(), array_map('strval', (array) $e->get('researchers')), true))->count())->toBe(1);

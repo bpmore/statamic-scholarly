@@ -86,7 +86,11 @@ final class FetchForResearcher
         // the scorer reads it. Every candidate of the researcher is
         // rescored, not only tonight's: a new certain paper changes the
         // fingerprint every earlier candidate is measured against.
-        $this->scorer?->forResearcher(Entry::find($researcher->id()) ?? $researcher);
+        $scoring = $this->scorer?->forResearcher(Entry::find($researcher->id()) ?? $researcher);
+
+        if ($scoring !== null && $scoring->autoApproved > 0) {
+            $report = new RunReport((string) $researcher->id(), $outcomes, $skipped, $written, $written->titleMatched, $scoring->autoApproved);
+        }
 
         $this->log($researcher, $report);
 

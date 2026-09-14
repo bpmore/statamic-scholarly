@@ -478,3 +478,36 @@ score: the spec's auto-approve band conflicts with the README's promise that
 nothing reaches a public page without a person, and "discard" has no defined
 effect on an entry. `auto_approve_threshold` and `discard_floor` remain
 inert until that is decided.
+
+## 2026-09-14: A calibrated 0.90, or an anchor, approves without a person
+
+**Decision.** With `scoring.auto_approve` on (the shipped default), a
+candidate is approved by the scorer when its number is one that means
+something and is at or above `auto_approve_threshold`: a certain anchor
+(1.0 by definition: the researcher's own ORCID iD on the author line, or a
+work claimed on their record) or a calibrated probability. The prior never
+approves anything, whatever it says. An auto-approved entry has no
+verifier, carries `auto_approved: true`, keeps its breakdown as the reason,
+and a person can reject it; that rejection is as durable as any other.
+Decided by the owner, who chose the spec's band over the README's earlier
+promise that nothing reaches a public page without a person.
+
+**Why the gate on state.** The threshold is a probability. On the prior it
+is an arbitrary cut on a weighted sum, and approving on it would put
+namesakes' papers on public profiles at a rate nobody could state.
+
+**Why anchors approve even before calibration.** An anchor is not a score;
+it is the researcher's own identifier. It was certain before any model
+existed and is not made more certain by one.
+
+**Also settled here.**
+
+- Forgetting the model (`scholarly:calibrate --forget`) does not undo the
+  approvals it made. Each still says it was made on score and can be
+  reviewed by filtering on that. Silently un-approving would pull papers
+  off public pages with no record of why.
+- A host that published its config before this key existed has no
+  `auto_approve` key, and the addon reads that as off. Nothing goes public
+  because of an upgrade.
+- `discard_floor` is still inert. What "discard" does to an entry is not
+  decided.

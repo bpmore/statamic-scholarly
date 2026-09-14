@@ -16,8 +16,10 @@ actually wrote the paper.
 - De-duplicates on DOI, then PMID, then title. A title match is flagged for a
   human rather than merged, because an erratum and the paper it corrects share a
   title and are different works.
-- Routes every candidate through a review queue. Nothing reaches a public page
-  without a person confirming it.
+- Routes every candidate through a review queue. A paper reaches a public
+  page when a person confirms it, when the researcher's own ORCID iD is on
+  it, or when a calibrated score says it is theirs at nine in ten or better;
+  the last two say so on the entry and a person can reverse them.
 - Renders an approved list through an Antlers tag.
 
 ## What it will not do
@@ -91,8 +93,14 @@ state first. `certain` means the researcher's own ORCID iD is on the paper;
 the number is 1.0 and is not a score. `uncalibrated` means the shipped
 starting weights: the order is meaningful (co-authors you have published
 with, your affiliation, a rare name), the number is not a probability. Open
-the entry to see why it scored as it did. Nothing is approved or discarded
-on the score.
+the entry to see why it scored as it did.
+
+With `scoring.auto_approve` on (the default; add the key if you published
+config before it existed), a candidate is approved without a person when
+its number means something and is at or above the threshold: the
+researcher's own ORCID iD on the paper, or a calibrated 0.90. The shipped
+weights never approve anything. An approved-on-score entry says so in the
+listing and a person can reject it.
 
 Once your verifiers have made thirty or so decisions (at least ten each
 way), run `php please scholarly:calibrate`. It fits the weights to those

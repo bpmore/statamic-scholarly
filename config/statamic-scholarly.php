@@ -114,11 +114,15 @@ return [
     | Scoring
     |--------------------------------------------------------------------------
     |
-    | Phase two. A score at or above the threshold approves without review; one
-    | below the floor is discarded; the rest queue for a human.
+    | `auto_approve` lets a candidate at or above the threshold be approved
+    | without a person, and appear on public profiles. Only a number that
+    | means something counts: an ORCID anchor (1.0 by definition) or a
+    | calibrated probability. The shipped prior never approves anything,
+    | whatever it says, because an uncalibrated 0.90 is an ordering, not nine
+    | in ten. An auto-approved entry says so (`auto_approved`, no verifier)
+    | and a person can still reject it.
     |
-    | These numbers mean nothing until the score is calibrated. An uncalibrated
-    | 0.90 is an arbitrary cut on a weighted sum, not a nine-in-ten confidence.
+    | `discard_floor` is not acted on yet.
     |
     | `scholarly:calibrate` fits the model to this site's confirm and reject
     | decisions, pooled across researchers, and refuses below `min_labels`
@@ -127,6 +131,7 @@ return [
     |
     */
     'scoring' => [
+        'auto_approve' => true,
         'auto_approve_threshold' => 0.90,
         'discard_floor' => 0.30,
         'min_labels' => 30,

@@ -28,6 +28,12 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- Auto-approval: with `scoring.auto_approve` on, a candidate whose number
+  means something (an ORCID anchor, or a calibrated probability) and is at
+  or above `auto_approve_threshold` is approved by the scorer, marked
+  `auto_approved` with no verifier, and can be rejected by a person. The
+  shipped prior never approves anything. Sites that published config
+  before this key existed must add it to turn it on.
 - `scholarly:calibrate`: fits the confidence model to this site's confirm
   and reject decisions, pooled across researchers and pulled toward the
   shipped prior, reports cross-validated reliability, and refuses below

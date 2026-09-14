@@ -25,6 +25,7 @@ final readonly class RunReport
         public array $skipped,
         public WriteReport $written,
         public int $titleMatches = 0,
+        public int $autoApproved = 0,
     ) {}
 
     /**
@@ -105,6 +106,10 @@ final readonly class RunReport
 
         if ($this->titleMatches > 0) {
             $parts[] = \sprintf('%d title match(es) flagged for review', $this->titleMatches);
+        }
+
+        if ($this->autoApproved > 0) {
+            $parts[] = \sprintf('%d approved on score', $this->autoApproved);
         }
 
         foreach ($this->failures() as $failure) {
