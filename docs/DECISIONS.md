@@ -599,3 +599,26 @@ like a fact.
   source's own case; case is never guessed.
 - The feed says `status: approved` and not which of the three routes
   approved each item. A consumer that needs to know reads the site.
+
+## 2026-09-14: The researcher's page uses written fields, not a fieldtype
+
+**Decision.** `scholarly:install` writes a fieldset (`scholarly`) the host
+imports into its researcher blueprint: the verifier picker, the ten newest
+approved publications as a read-only entries field, the count of
+candidates waiting, and a line about the last fetch. The values are written
+by the addon at the end of every scoring pass, which follows every fetch,
+decision, import and calibration, and only when they changed.
+
+**Why.** The spec asked for a read-only fieldtype. A fieldtype of the
+addon's own needs a Vue component and a JavaScript build this package does
+not have, and the repository's rule is that control-panel UI comes from
+Statamic's own components. An `entries` field marked read-only already
+renders linked, status-badged chips; an integer and a text field already
+render the rest. Written values also cost nothing on render: a computed
+value would query the publications collection for every researcher row in
+a listing.
+
+**Rejected.** A computed field (render-time queries in listings); a Vue
+fieldtype (a build step, and hand-rolled UI); the fieldset shipped as a
+static file (it has to name the configured publications collection, which
+only the install command knows).

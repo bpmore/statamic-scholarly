@@ -85,10 +85,18 @@ Records are de-duplicated against what a fetch already found and queue as
 candidates. `--confirm-as` approves them as that person, which is the
 right thing when the file is the researcher's own list.
 
+## On the researcher's own page
+
+`scholarly:install` writes a `scholarly` fieldset. Import it into your
+researcher blueprint and each researcher's entry shows their verifier, their
+ten newest approved publications, how many candidates wait, and the last
+fetch's verdict. The addon keeps those up to date; nothing is computed when
+the page renders.
+
 ## Being told
 
-Add a `scholarly_verifier` users field to your researcher blueprint and pick
-who reviews for each person. `scholarly:notify` (scheduled with the fetch,
+The `scholarly_verifier` field in that fieldset says who reviews for each
+person. `scholarly:notify` (scheduled with the fetch,
 or run by hand) mails each verifier one digest of new candidates, says when
 the last fetch for a researcher was partial, and never mentions the same
 candidate twice. Deferred candidates are left out.
