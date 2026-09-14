@@ -52,6 +52,9 @@ final class PublicationWriter
         /** @var array<int, EntryContract> $entriesByIndex */
         $entriesByIndex = [];
 
+        /** @var list<string> $candidateIds */
+        $candidateIds = [];
+
         foreach ($merged as $index => $publication) {
             $values = Snapshot::fromMerged($publication);
             $existing = $this->find($publication);
@@ -59,6 +62,7 @@ final class PublicationWriter
             if ($existing === null) {
                 $entry = $this->create($researcher, $values, $fetchedAt);
                 $created++;
+                $candidateIds[] = (string) $entry->id();
             } else {
                 $entry = $existing;
                 $listed = \in_array((string) $researcher->id(), $this->researchersOn($existing), true);
@@ -77,6 +81,7 @@ final class PublicationWriter
                         } else {
                             $this->reopenFor($existing, $researcher);
                             $reopened++;
+                            $candidateIds[] = (string) $existing->id();
                         }
 
                         break;
@@ -84,6 +89,7 @@ final class PublicationWriter
                     default:
                         $this->refresh($existing, $researcher, $values, $fetchedAt);
                         $refreshed++;
+                        $candidateIds[] = (string) $existing->id();
                 }
             }
 
@@ -92,7 +98,7 @@ final class PublicationWriter
 
         $titleMatched = $this->linkTitleMatches($entriesByIndex);
 
-        return new WriteReport($created, $refreshed, $kept, $suppressed, $reopened, $titleMatched);
+        return new WriteReport($created, $refreshed, $kept, $suppressed, $reopened, $titleMatched, $candidateIds);
     }
 
     /**

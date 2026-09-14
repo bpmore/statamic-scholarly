@@ -71,6 +71,20 @@ The schedule in config runs `scholarly:fetch` daily. A report line says
 answer, because zero publications from a source that never ran is not an
 answer.
 
+## Importing a list
+
+```
+php please scholarly:import ~/carberry.bib josiah-carberry
+php please scholarly:import ~/list.csv josiah-carberry --confirm-as=jc@example.edu
+```
+
+BibTeX from any reference manager (Google Scholar's export included), or
+a CSV whose header names the columns (`title`, `doi`, `pmid`, `journal`,
+`date`, `authors`, `abstract`; Google Scholar's own headers work too).
+Records are de-duplicated against what a fetch already found and queue as
+candidates. `--confirm-as` approves them as that person, which is the
+right thing when the file is the researcher's own list.
+
 ## Being told
 
 Add a `scholarly_verifier` users field to your researcher blueprint and pick

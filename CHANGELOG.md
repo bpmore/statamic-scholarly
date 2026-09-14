@@ -28,6 +28,11 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- `scholarly:import file researcher`: BibTeX or CSV into candidates for
+  one researcher, through the same de-duplication, matching and scoring a
+  fetch uses. `--confirm-as=<user>` approves what the import brought in as
+  that person's decision. The supported route for Google Scholar exports
+  and hand-kept lists.
 - The discard floor: a candidate whose calibrated probability is below
   `scoring.discard_floor` is set aside (`discarded_at`): still a candidate,
   left out of the digest, filterable in the listing, never deleted, and

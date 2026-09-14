@@ -530,3 +530,41 @@ ten at best. Setting aside gets the queue relief with nothing lost.
 **Rejected.** A `discarded` status of its own. It would be a fourth state
 the tag, the notification and the writer each have to know about, for a
 distinction that is really "candidate, but quiet". Also deletion, above.
+
+## 2026-09-14: Import is a source, and a person may confirm on the way in
+
+**Decision.** `scholarly:import file researcher` reads a BibTeX or CSV file
+into candidates with source key `import` and takes them through the same
+path a fetch takes: de-duplicated, matched against the collection by DOI
+and PMID, written as candidates, scored. `--confirm-as=<user>` approves
+what the import created or refreshed, recorded as that person's decision;
+a rejected entry stays rejected. Google Scholar is supported this way,
+by export, never by scraping.
+
+**Why the same path.** A list somebody compiled about a namesake is the
+same list. An import that bypassed de-duplication would create the second
+copy of every paper a fetch already found; one that bypassed scoring would
+sit in the queue with no reasons attached.
+
+**Why confirm-as exists.** The common import is the researcher's own
+reference-manager export. Making a person confirm two hundred entries one
+at a time, when the file itself is the confirmation, is friction that
+ends in nobody importing. It is a named person's decision, not the
+score's, and the entry says so.
+
+**Rejected.** A control-panel upload. Wanted, and later: the parsers are
+framework free so the same code sits behind either. Also full BibTeX
+(`@string`, `#`, cross-references): no export uses them.
+
+## 2026-09-14: Collaborators are required constructor arguments
+
+**Decision.** A class that needs the scorer or the verifier declares it as
+a required constructor argument, not `?Type $x = null`.
+
+**Why.** The container resolved an optional `?Verifier` as null with no
+error, and an import that was asked to confirm confirmed nothing, quietly.
+The same shape on `?ScoreCandidates` happened to resolve. Whatever the
+container's reason, an optional collaborator is a silent failure waiting
+for the case where it is not supplied, and a required one is a loud
+exception at construction. Tests that build a class by hand pass the real
+collaborator.
