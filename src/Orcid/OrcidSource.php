@@ -9,6 +9,7 @@ use Bpmore\Scholarly\Fetching\FetchOutcome;
 use Bpmore\Scholarly\Fetching\Reason;
 use Bpmore\Scholarly\Fetching\SharedRateLimit;
 use Bpmore\Scholarly\Fetching\SourceFailure;
+use Bpmore\Scholarly\Publications\CandidatePublication;
 use Bpmore\Scholarly\Researchers\ResearcherFieldMap;
 use Bpmore\Scholarly\Rules\IdentifierFormat;
 use DateTimeImmutable;
@@ -37,6 +38,9 @@ final class OrcidSource implements PublicationSource
     public const DEFAULT_BASE_URL = 'https://pub.orcid.org/v3.0/';
 
     private const LIMITER_KEY = 'scholarly:orcid';
+
+    /** Put-codes per bulk request; ORCID's ceiling is one hundred. */
+    private const BULK_SIZE = 100;
 
     /**
      * Well under ORCID's published ceiling for the public API, so that other
@@ -153,13 +157,73 @@ final class OrcidSource implements PublicationSource
 
         try {
             $candidates = OrcidWorks::candidates($decoded, $sinceMillis);
+            $putCodes = OrcidWorks::putCodes($decoded, $sinceMillis);
         } catch (UnexpectedOrcidResponse $e) {
             return $outcome->withFailure($this->failure(Reason::UnexpectedResponse, $e->getMessage()));
         }
 
-        return $outcome
-            ->withCandidates(...$candidates)
-            ->withSourceRun($this->sourceKey());
+        // Contributors and the description live on the full record, one
+        // request per hundred. If that cannot answer, the candidates still
+        // go out with what the summary had, and the run is partial.
+        $enrichment = $this->enrich($orcid, $candidates, $putCodes);
+
+        $outcome = $outcome->withCandidates(...$candidates);
+
+        if ($enrichment !== null) {
+            return $outcome->withFailure($enrichment);
+        }
+
+        return $outcome->withSourceRun($this->sourceKey());
+    }
+
+    /**
+     * Fill in authors and abstract from the bulk works endpoint, in place.
+     *
+     * @param  list<CandidatePublication>  $candidates  Replaced in place with enriched copies
+     * @param  list<int|null>  $putCodes  Aligned with $candidates
+     * @return SourceFailure|null The failure to report, if the endpoint could not answer
+     */
+    private function enrich(string $orcid, array &$candidates, array $putCodes): ?SourceFailure
+    {
+        $wanted = \array_filter($putCodes, static fn (?int $code): bool => $code !== null);
+
+        if ($wanted === []) {
+            return null;
+        }
+
+        $details = [];
+
+        foreach (\array_chunk(\array_values($wanted), self::BULK_SIZE) as $chunk) {
+            $this->limiter->waitForSlot();
+
+            try {
+                $response = $this->client()->get($this->baseUrl.$orcid.'/works/'.\implode(',', $chunk));
+            } catch (ConnectionException $e) {
+                return $this->failure(Reason::TransportFailed, 'details for '.\count($wanted).' work(s) could not be fetched: '.$e->getMessage());
+            }
+
+            if (! $response->successful()) {
+                return $this->failure(Reason::TransportFailed, \sprintf('details for %d work(s) could not be fetched: HTTP %d', \count($wanted), $response->status()));
+            }
+
+            $decoded = $response->json();
+
+            try {
+                $details += OrcidWorkDetails::parse(\is_array($decoded) ? $decoded : []);
+            } catch (UnexpectedOrcidResponse $e) {
+                return $this->failure(Reason::UnexpectedResponse, 'details for '.\count($wanted).' work(s) could not be read: '.$e->getMessage());
+            }
+        }
+
+        foreach ($candidates as $i => $candidate) {
+            $detail = $putCodes[$i] === null ? null : ($details[$putCodes[$i]] ?? null);
+
+            if ($detail !== null) {
+                $candidates[$i] = $candidate->withDetails($detail['authors'], $detail['abstract']);
+            }
+        }
+
+        return null;
     }
 
     private function client(): PendingRequest

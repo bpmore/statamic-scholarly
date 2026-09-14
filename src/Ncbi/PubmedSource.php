@@ -126,6 +126,7 @@ final class PubmedSource implements PublicationSource
         }
 
         $missing = [];
+        $candidates = [];
 
         foreach ($pmids as $pmid) {
             $row = $summaries[$pmid] ?? null;
@@ -136,20 +137,48 @@ final class PubmedSource implements PublicationSource
                 continue;
             }
 
-            $outcome = $outcome->withCandidates(SummaryCandidate::fromRow($row));
+            $candidates[$pmid] = SummaryCandidate::fromRow($row);
         }
+
+        // Affiliations, author ORCID iDs and the abstract come from a second
+        // endpoint. If it cannot answer, the candidates still go out with
+        // what the summary had, and the run is partial: the last-fetched
+        // stamp does not advance, so the next run asks again.
+        $enrichment = null;
+
+        try {
+            $details = $candidates === [] ? [] : $this->metadata->detailsForPmids(\array_map('strval', \array_keys($candidates)));
+
+            foreach ($candidates as $pmid => $candidate) {
+                $detail = $details[$pmid] ?? null;
+
+                if ($detail !== null) {
+                    $candidates[$pmid] = $candidate->withDetails($detail['authors'], $detail['abstract']);
+                }
+            }
+        } catch (NcbiUnavailable $e) {
+            $enrichment = $this->failure(Reason::TransportFailed, 'details for '.\count($candidates).' PMID(s) could not be fetched: '.$e->getMessage());
+        } catch (UnexpectedNcbiResponse $e) {
+            $enrichment = $this->failure(Reason::UnexpectedResponse, 'details for '.\count($candidates).' PMID(s) could not be read: '.$e->getMessage());
+        }
+
+        $outcome = $outcome->withCandidates(...\array_values($candidates));
 
         // A PMID the search returned and the summary endpoint disowns is not
         // a paper that does not exist. It is two NCBI endpoints disagreeing,
         // and the run is reported as partial rather than as an answer.
         if ($missing !== []) {
-            return $outcome->withFailure($this->failure(
+            $outcome = $outcome->withFailure($this->failure(
                 Reason::UnexpectedResponse,
                 \sprintf('%d of %d PMIDs returned by search had no summary: %s', \count($missing), \count($pmids), \implode(', ', $missing)),
             ));
         }
 
-        return $outcome->withSourceRun($this->sourceKey());
+        if ($enrichment !== null) {
+            $outcome = $outcome->withFailure($enrichment);
+        }
+
+        return $outcome->isComplete() ? $outcome->withSourceRun($this->sourceKey()) : $outcome;
     }
 
     /**

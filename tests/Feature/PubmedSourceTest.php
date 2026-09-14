@@ -20,6 +20,7 @@ const AUTHOR_HANDLE = 'host_pubmed_query';
 
 const ESEARCH = 'eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi*';
 const ESUMMARY_URL = 'eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi*';
+const EFETCH_URL = 'eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi*';
 
 function pubmedSource(): PubmedSource
 {
@@ -73,6 +74,7 @@ it('searches by the host-mapped author string, then summarises every PMID found'
     Http::fake([
         ESEARCH => Http::response(esearchComplete(), 200),
         ESUMMARY_URL => Http::response(ncbiFixture('esummary-carberry-j-page-1.json'), 200),
+        EFETCH_URL => Http::response(ncbiFixture('efetch-carberry-j-two-articles.xml'), 200),
     ]);
 
     $outcome = pubmedSource()->fetchForResearcher(pubmedResearcher([AUTHOR_HANDLE => 'Carberry J']));
@@ -83,7 +85,7 @@ it('searches by the host-mapped author string, then summarises every PMID found'
         ->and($outcome->candidates[0]->pmid)->toBe('42392556')
         ->and($outcome->candidates[4]->doi)->toBe('10.1161/CIRCULATIONAHA.125.074645');
 
-    Http::assertSentCount(2);
+    Http::assertSentCount(3);
     Http::assertSent(static fn (Request $r): bool => str_contains($r->url(), 'esearch.fcgi')
         && $r['term'] === '"Carberry J"[Author]'
         && $r['retmax'] === 500
@@ -123,6 +125,7 @@ it('pages through a search larger than one page before summarising', function ()
 
             return Http::response(['result' => $result], 200);
         },
+        EFETCH_URL => Http::response('<?xml version="1.0"?><PubmedArticleSet></PubmedArticleSet>', 200),
     ]);
 
     $outcome = pubmedSource()->fetchForResearcher(pubmedResearcher([AUTHOR_HANDLE => 'Carberry J']));
@@ -184,6 +187,7 @@ it('reports an outage at either endpoint as a transport failure', function (stri
     Http::fake([
         ESEARCH => $failing === 'esearch' ? Http::response('', 503) : Http::response(esearchComplete(), 200),
         ESUMMARY_URL => Http::response('', 503),
+        EFETCH_URL => Http::response('', 503),
     ]);
 
     $outcome = pubmedSource()->fetchForResearcher(pubmedResearcher([AUTHOR_HANDLE => 'Carberry J']));
@@ -219,6 +223,7 @@ it('reports a PMID the search returned but the summary disowned as partial, keep
     Http::fake([
         ESEARCH => Http::response($search, 200),
         ESUMMARY_URL => Http::response(ncbiFixture('esummary-carberry-j-page-1.json'), 200),
+        EFETCH_URL => Http::response(ncbiFixture('efetch-carberry-j-two-articles.xml'), 200),
     ]);
 
     $outcome = pubmedSource()->fetchForResearcher(pubmedResearcher([AUTHOR_HANDLE => 'Carberry J']));
@@ -234,6 +239,7 @@ it('marks every candidate as an estimate from pubmed, never as a claim', functio
     Http::fake([
         ESEARCH => Http::response(esearchComplete(), 200),
         ESUMMARY_URL => Http::response(ncbiFixture('esummary-carberry-j-page-1.json'), 200),
+        EFETCH_URL => Http::response(ncbiFixture('efetch-carberry-j-two-articles.xml'), 200),
     ]);
 
     $outcome = pubmedSource()->fetchForResearcher(pubmedResearcher([AUTHOR_HANDLE => 'Carberry J']));
@@ -244,3 +250,49 @@ it('marks every candidate as an estimate from pubmed, never as a claim', functio
 
     expect($outcome->candidates)->not->toBe([]);
 });
+
+it('fills in affiliations, author ORCID iDs and the abstract from efetch', function (): void {
+    Http::fake([
+        ESEARCH => Http::response(esearchComplete(), 200),
+        ESUMMARY_URL => Http::response(ncbiFixture('esummary-carberry-j-page-1.json'), 200),
+        EFETCH_URL => Http::response(ncbiFixture('efetch-carberry-j-two-articles.xml'), 200),
+    ]);
+
+    $outcome = pubmedSource()->fetchForResearcher(pubmedResearcher([AUTHOR_HANDLE => 'Carberry J']));
+
+    $byPmid = collect($outcome->candidates)->keyBy->pmid;
+    $enriched = $byPmid['40842283'];
+    $summaryOnly = $byPmid['42392556'];
+
+    expect($outcome->isComplete())->toBeTrue()
+        ->and($enriched->abstract)->toStartWith('AIMS: ')
+        ->and($enriched->authors[1]['name'])->toBe('Carberry J')
+        ->and($enriched->authors[1]['orcid'])->toBe('0000-0002-4184-0714')
+        ->and($enriched->authors[1]['affiliation'])->toStartWith('British Heart Foundation')
+        ->and($summaryOnly->abstract)->toBeNull('the recorded efetch has no article for this PMID')
+        ->and($summaryOnly->authors[0])->toBe(['name' => 'Sykes R'], 'summary authors are kept when efetch has nothing');
+
+    Http::assertSent(static fn (Request $r): bool => str_contains($r->url(), 'efetch.fcgi')
+        && $r['retmode'] === 'xml'
+        && $r['id'] === '42392556,41640490,41516974,40842283,40788977'
+        && $r['email'] === 'ops@example.edu');
+});
+
+it('still returns the candidates and reports the run partial when efetch cannot answer', function (int $status, string $body, Reason $reason): void {
+    Http::fake([
+        ESEARCH => Http::response(esearchComplete(), 200),
+        ESUMMARY_URL => Http::response(ncbiFixture('esummary-carberry-j-page-1.json'), 200),
+        EFETCH_URL => Http::response($body, $status),
+    ]);
+
+    $outcome = pubmedSource()->fetchForResearcher(pubmedResearcher([AUTHOR_HANDLE => 'Carberry J']));
+
+    expect($outcome->candidates)->toHaveCount(5)
+        ->and($outcome->isComplete())->toBeFalse()
+        ->and($outcome->sourcesRun)->toBe([], 'the stamp must not advance past a run that could not enrich')
+        ->and($outcome->failures[0]->reason)->toBe($reason)
+        ->and(str_contains($outcome->failures[0]->detail, 'details for 5 PMID(s)'))->toBeTrue();
+})->with([
+    'outage' => [503, '', Reason::TransportFailed],
+    'html instead of xml' => [200, '<html>maintenance</html>', Reason::UnexpectedResponse],
+]);

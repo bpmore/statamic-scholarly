@@ -28,6 +28,11 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- Candidates now carry author affiliations, author ORCID iDs and the
+  abstract: PubMed through `efetch` and ORCID through the bulk works
+  endpoint, one request per hundred, cached. If that second request cannot
+  answer, the candidates still arrive with what the listing had and the run
+  is partial. `PublicationMetadataFetcher::detailsForPmids()` is the seam.
 - Title matches are now found across runs, not only within one: a stored
   `title_key` lets tonight's full paper find last month's abstract, and both
   are linked in `possible_duplicates`. Nothing is merged.

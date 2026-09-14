@@ -32,13 +32,63 @@ final class OrcidWorks
      */
     public static function candidates(array $decoded, ?int $modifiedSinceMillis = null): array
     {
+        $candidates = [];
+
+        foreach (self::selected($decoded, $modifiedSinceMillis) as [$group, $summary]) {
+            $ids = self::selfIdentifiers($group['external-ids'] ?? null);
+
+            $candidates[] = new CandidatePublication(
+                sourceKey: self::SOURCE_KEY,
+                title: self::string($summary['title']['title']['value'] ?? null),
+                doi: $ids['doi'] ?? null,
+                pmid: $ids['pmid'] ?? null,
+                journal: self::string($summary['journal-title']['value'] ?? null),
+                publicationDate: self::date($summary['publication-date'] ?? null),
+                externalUrls: \array_values(\array_filter([self::string($summary['url']['value'] ?? null)])),
+            );
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * The put-code of each candidate's preferred summary, in candidates()
+     * order, for fetching the full record. Null where a summary has none.
+     *
+     * @param  array<string, mixed>  $decoded
+     * @return list<int|null>
+     *
+     * @throws UnexpectedOrcidResponse
+     */
+    public static function putCodes(array $decoded, ?int $modifiedSinceMillis = null): array
+    {
+        $codes = [];
+
+        foreach (self::selected($decoded, $modifiedSinceMillis) as [$group, $summary]) {
+            $code = $summary['put-code'] ?? null;
+            $codes[] = \is_int($code) || (\is_string($code) && \ctype_digit($code)) ? (int) $code : null;
+        }
+
+        return $codes;
+    }
+
+    /**
+     * Every group that survives the since filter, with its preferred summary.
+     *
+     * @param  array<string, mixed>  $decoded
+     * @return list<array{0: array<string, mixed>, 1: array<string, mixed>}>
+     *
+     * @throws UnexpectedOrcidResponse
+     */
+    private static function selected(array $decoded, ?int $modifiedSinceMillis): array
+    {
         // The ORCID API returns `"group": []` for a record with no works, so a
         // missing key is a different response, not an empty one.
         if (! \array_key_exists('group', $decoded) || ! \is_array($decoded['group'])) {
             throw UnexpectedOrcidResponse::missing('the "group" list');
         }
 
-        $candidates = [];
+        $selected = [];
 
         foreach ($decoded['group'] as $group) {
             if (! \is_array($group)) {
@@ -55,20 +105,10 @@ final class OrcidWorks
                 throw UnexpectedOrcidResponse::missing('a work summary in a group');
             }
 
-            $ids = self::selfIdentifiers($group['external-ids'] ?? null);
-
-            $candidates[] = new CandidatePublication(
-                sourceKey: self::SOURCE_KEY,
-                title: self::string($summary['title']['title']['value'] ?? null),
-                doi: $ids['doi'] ?? null,
-                pmid: $ids['pmid'] ?? null,
-                journal: self::string($summary['journal-title']['value'] ?? null),
-                publicationDate: self::date($summary['publication-date'] ?? null),
-                externalUrls: \array_values(\array_filter([self::string($summary['url']['value'] ?? null)])),
-            );
+            $selected[] = [$group, $summary];
         }
 
-        return $candidates;
+        return $selected;
     }
 
     /**
