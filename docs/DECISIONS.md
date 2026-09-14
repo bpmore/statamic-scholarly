@@ -399,3 +399,48 @@ little.
 URL, or with a typo; only a well formed id is kept, because a wrong id on an
 author line is worse than none. Author names from E-fetch are rendered in
 E-summary's form ("Carberry J") so the two line up.
+
+## 2026-09-14: Scoring starts with signals, a breakdown and a stated state; no bands yet
+
+**Decision.** Every candidate gets `confidence_score`, `confidence_breakdown`
+(each signal and each weight's contribution) and `confidence_state`. The
+state is one of three: `certain` (an anchor: the researcher's own ORCID iD
+on an author line, or a work they claimed on their record; the number is
+1.0 and is not a score), `uncalibrated` (the hand-set prior; an ordering,
+not a probability) or `calibrated` (fitted to this site's decisions; not
+built yet). Nothing is auto-approved and nothing is discarded on the score.
+
+**Why.** A calibrated 0.90 means roughly nine in ten. An uncalibrated 0.90
+means nothing, and a threshold on it is an arbitrary cut. Calibration needs
+labelled decisions, which a new site has none of, so the first honest thing
+the score can be is an ordering with its reasons attached. The state field
+is what stops the number being read as more than it is: copy, columns and
+any later routing read the state before the number.
+
+**The signals, and why each.** Name match (full or surname only, from a
+blunt parser that reduces every source's form to surname and initials and
+never decides which J. Carberry is which). Affiliation match against the
+site's patterns or against affiliations seen on the researcher's own author
+line on certain papers. Co-author overlap with the certain papers, the
+signal the spec expects to outrank affiliation. Journal seen on a certain
+paper. Corroboration: how many sources reported the paper. Name prevalence:
+how many PubMed records the author string matches, from the esearch count
+the PubMed source already receives, stored on the researcher as
+`scholarly_name_prevalence`.
+
+**The fingerprint** is built only from certain papers: approved entries,
+and candidates that arrived as an ORCID claim or carry the researcher's own
+iD. A name-matched candidate contributes nothing, or the fingerprint would
+learn a namesake's co-authors and then score the namesake's next paper up.
+Confirming and rejecting rescore every candidate of the researchers on the
+entry, which is the feedback loop the spec asks for.
+
+**Rejected.** Auto-approval and the discard floor on the prior. Both exist in
+config and both do nothing until a calibrated model exists. Also replacing
+the prevalence count with a name-frequency table: the esearch count is
+free, current and specific to the exact author string.
+
+**Open.** What calibration is fitted from (this site's decisions pooled
+across researchers, per researcher, or both), how many labels it needs
+before the state may say `calibrated`, and what "discard" does to an entry.
+Those are product decisions and are put to the owner rather than made here.

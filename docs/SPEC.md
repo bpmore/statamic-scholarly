@@ -291,6 +291,10 @@ A calibrated score is the point: `0.90` must mean roughly ninety percent likely 
 threshold is an arbitrary cut on an uncalibrated sum. Keep the per-signal breakdown visible in the
 control panel, because that explanation is what makes auto-routing trustworthy.
 
+**Built so far:** signals, breakdown, and a `confidence_state` of `certain`, `uncalibrated` or
+`calibrated` that copy and routing read before the number. The prior is shipped; calibration, the
+bands and auto-approval wait on it (DECISIONS, 2026-09-14).
+
 ## 10. Verification workflow
 
 | Action | Effect |
@@ -454,6 +458,7 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 | Version | Date | Summary |
 |---|---|---|
 | 1.0.0 | 2026-09-13 | Initial specification. |
+| 1.0.8 | 2026-09-14 | Section 9.1: what of scoring is built, and the state field. |
 | 1.0.7 | 2026-09-14 | Section 14: the driver matrix as built. |
 | 1.0.6 | 2026-09-14 | Notification pipeline in section 9; `scholarly_last_run` in 7.1; open question 2 settled. |
 | 1.0.5 | 2026-09-14 | Section 11: tag parameters as built; the authors modifier is `scholarly_authors`; `type` deferred. |

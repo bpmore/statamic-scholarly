@@ -84,6 +84,16 @@ SCHOLARLY_VERIFIER_EMAIL=review@example.org   # who gets it when a researcher ha
 With no verifier and no fallback, the command says who could not be told and
 exits non-zero. It never stays quiet about that.
 
+## What the confidence number means
+
+Each candidate shows a confidence score and, next to it, a state. Read the
+state first. `certain` means the researcher's own ORCID iD is on the paper;
+the number is 1.0 and is not a score. `uncalibrated` means the shipped
+starting weights: the order is meaningful (co-authors you have published
+with, your affiliation, a rare name), the number is not a probability. Open
+the entry to see why it scored as it did. Nothing is approved or discarded
+on the score.
+
 ## Verifying
 
 Give a role the **Verify publications** permission. "Publication review" in

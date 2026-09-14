@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Bpmore\Scholarly\Fetching;
 
+use Bpmore\Scholarly\Ncbi\PubmedSource;
 use Bpmore\Scholarly\Publications\CandidatePublication;
 use Bpmore\Scholarly\Publications\Deduplicator;
 use Bpmore\Scholarly\Publications\PublicationsCollection;
+use Bpmore\Scholarly\Scoring\ScoreCandidates;
 use Illuminate\Support\Facades\Log;
 use Statamic\Contracts\Entries\Entry as EntryContract;
+use Statamic\Facades\Entry;
 
 /**
  * One researcher, every selected source, de-duplicated, written, stamped.
@@ -36,6 +39,7 @@ final class FetchForResearcher
         private readonly Deduplicator $deduplicator,
         private readonly PublicationWriter $writer,
         private readonly PublicationsCollection $collection,
+        private readonly ?ScoreCandidates $scorer = null,
     ) {}
 
     /**
@@ -76,10 +80,36 @@ final class FetchForResearcher
 
         $report = new RunReport((string) $researcher->id(), $outcomes, $skipped, $written, $written->titleMatched);
 
-        $this->stamp($researcher, $stamps, $report, $startedAt);
+        $this->stamp($researcher, $stamps, $report, $startedAt, $this->notes($outcomes));
+
+        // After the stamp, so the prevalence note is on the researcher when
+        // the scorer reads it. Every candidate of the researcher is
+        // rescored, not only tonight's: a new certain paper changes the
+        // fingerprint every earlier candidate is measured against.
+        $this->scorer?->forResearcher(Entry::find($researcher->id()) ?? $researcher);
+
         $this->log($researcher, $report);
 
         return $report;
+    }
+
+    /**
+     * Facts the sources learned, keyed by the field they are stored under.
+     *
+     * @param  array<string, FetchOutcome>  $outcomes
+     * @return array<string, scalar>
+     */
+    private function notes(array $outcomes): array
+    {
+        $notes = [];
+
+        foreach ($outcomes as $outcome) {
+            if (isset($outcome->notes[PubmedSource::NAME_PREVALENCE_NOTE])) {
+                $notes[ScoreCandidates::PREVALENCE_FIELD] = $outcome->notes[PubmedSource::NAME_PREVALENCE_NOTE];
+            }
+        }
+
+        return $notes;
     }
 
     /**
@@ -88,14 +118,16 @@ final class FetchForResearcher
      * that left no trace on the researcher would be the silent failure.
      *
      * @param  array<string, mixed>  $stamps
+     * @param  array<string, scalar>  $notes
      */
-    private function stamp(EntryContract $researcher, array $stamps, RunReport $report, string $startedAt): void
+    private function stamp(EntryContract $researcher, array $stamps, RunReport $report, string $startedAt, array $notes = []): void
     {
         foreach ($report->sourcesRun() as $key) {
             $stamps[$key] = $startedAt;
         }
 
         $researcher->merge([
+            ...$notes,
             self::LAST_FETCHED_FIELD => $stamps,
             self::LAST_RUN_FIELD => [
                 'at' => $startedAt,

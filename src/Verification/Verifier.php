@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Bpmore\Scholarly\Verification;
 
 use Bpmore\Scholarly\Publications\PublicationsCollection;
+use Bpmore\Scholarly\Scoring\ScoreCandidates;
 use InvalidArgumentException;
 use Statamic\Contracts\Auth\User;
 use Statamic\Contracts\Entries\Entry;
+use Statamic\Facades\Entry as EntryFacade;
 
 /**
  * The three things a person can do to a candidate, and what each records.
@@ -23,7 +25,10 @@ final class Verifier
 {
     public const PERMISSION = 'verify scholarly publications';
 
-    public function __construct(private readonly PublicationsCollection $collection) {}
+    public function __construct(
+        private readonly PublicationsCollection $collection,
+        private readonly ?ScoreCandidates $scorer = null,
+    ) {}
 
     /**
      * Approve. Allowed from candidate and from rejected, because a person
@@ -40,6 +45,10 @@ final class Verifier
             'deferred_at' => null,
         ]);
         $entry->save();
+
+        // "Confirm enriches the fingerprint": every other candidate of these
+        // researchers is now measured against one more certain paper.
+        $this->rescore($entry);
     }
 
     /**
@@ -60,6 +69,10 @@ final class Verifier
             'deferred_at' => null,
         ]);
         $entry->save();
+
+        // A rejection can un-anchor: a wrongly approved paper that fed the
+        // fingerprint no longer does.
+        $this->rescore($entry);
     }
 
     /**
@@ -75,6 +88,21 @@ final class Verifier
 
         $entry->set('deferred_at', \date(DATE_ATOM));
         $entry->save();
+    }
+
+    private function rescore(Entry $entry): void
+    {
+        if ($this->scorer === null) {
+            return;
+        }
+
+        foreach ((array) $entry->get('researchers', []) as $id) {
+            $researcher = \is_string($id) || \is_int($id) ? EntryFacade::find((string) $id) : null;
+
+            if ($researcher !== null) {
+                $this->scorer->forResearcher($researcher);
+            }
+        }
     }
 
     public function isPublication(mixed $item): bool

@@ -178,9 +178,28 @@ it('refuses an author string it would not send', function (): void {
 it('passes since through as a modification-date window', function (): void {
     Http::fake([ESEARCH => Http::response(ncbiFixture('esearch-no-items.json'), 200)]);
 
-    pubmedSource()->fetchForResearcher(pubmedResearcher([AUTHOR_HANDLE => 'Carberry J']), '2024-02-29');
+    $outcome = pubmedSource()->fetchForResearcher(pubmedResearcher([AUTHOR_HANDLE => 'Carberry J']), '2024-02-29');
 
-    Http::assertSent(static fn (Request $r): bool => $r['datetype'] === 'mdat' && $r['mindate'] === '2024/02/29' && $r['maxdate'] === '3000');
+    Http::assertSent(static fn (Request $r): bool => isset($r['datetype']) && $r['datetype'] === 'mdat' && $r['mindate'] === '2024/02/29' && $r['maxdate'] === '3000');
+
+    // The prevalence count comes from a second, unwindowed, id-less request:
+    // how common the name is does not depend on the window.
+    Http::assertSent(static fn (Request $r): bool => ! isset($r['datetype']) && $r['retmax'] === 0);
+    Http::assertSentCount(2);
+
+    expect($outcome->notes[\Bpmore\Scholarly\Ncbi\PubmedSource::NAME_PREVALENCE_NOTE])->toBe(0);
+});
+
+it('records how many PubMed records the author string matches, as a note', function (): void {
+    Http::fake([
+        ESEARCH => Http::response(esearchComplete(), 200),
+        ESUMMARY_URL => Http::response(ncbiFixture('esummary-carberry-j-page-1.json'), 200),
+        EFETCH_URL => Http::response(ncbiFixture('efetch-carberry-j-two-articles.xml'), 200),
+    ]);
+
+    $outcome = pubmedSource()->fetchForResearcher(pubmedResearcher([AUTHOR_HANDLE => 'Carberry J']));
+
+    expect($outcome->notes)->toBe([\Bpmore\Scholarly\Ncbi\PubmedSource::NAME_PREVALENCE_NOTE => 5]);
 });
 
 it('reports an outage at either endpoint as a transport failure', function (string $failing): void {
@@ -296,3 +315,16 @@ it('still returns the candidates and reports the run partial when efetch cannot 
     'outage' => [503, '', Reason::TransportFailed],
     'html instead of xml' => [200, '<html>maintenance</html>', Reason::UnexpectedResponse],
 ]);
+
+it('refuses a search that hands back the same page forever instead of looping', function (): void {
+    // Found by a test double that ignored retstart. A server doing the same
+    // would otherwise hang a queue worker until it was killed.
+    Http::fake([ESEARCH => Http::response(ncbiFixture('esearch-carberry-j-page-1.json'), 200)]);
+
+    $outcome = pubmedSource()->fetchForResearcher(pubmedResearcher([AUTHOR_HANDLE => 'Carberry J']));
+
+    expect($outcome->failures[0]->reason)->toBe(Reason::UnexpectedResponse)
+        ->and(str_contains($outcome->failures[0]->detail, 'repeated a page'))->toBeTrue();
+
+    Http::assertSentCount(2);
+});
