@@ -568,3 +568,34 @@ container's reason, an optional collaborator is a silent failure waiting
 for the case where it is not supplied, and a required one is a loud
 exception at construction. Tests that build a class by hand pass the real
 collaborator.
+
+## 2026-09-14: One approved query, and a citation that leaves blanks blank
+
+**Decision.** `ApprovedPublications` is the one query every public surface
+uses: the tag, the feed, and anything later. The `scholarly_citation`
+modifier renders AMA, APA and Vancouver from the stored record and leaves
+out what it does not have rather than writing "n.d." or "[no journal]".
+The feed (`/!/statamic-scholarly/feed/{researcher}`) is public JSON of
+approved publications, cached an hour, with `year`, `journal` and `limit`.
+
+**Why one query.** Three surfaces with three copies of "approved only" are
+three places a candidate can leak. One class that cannot be asked for
+anything else is the enforcement.
+
+**Why blanks stay blank.** A citation with an invented part is a wrong
+citation of a real person's work. A missing year is visible; "n.d." looks
+like a fact.
+
+**Also settled here.**
+
+- Volume, issue and pages travel with a candidate from PubMed and from
+  imports, and are stored, because a citation without them is incomplete
+  and the sources have them.
+- An approved entry gains a field it lacked (journal, date, volume, issue,
+  pages, abstract) from a later fetch. A blank cannot have been a
+  verifier's correction; a value it has is never replaced.
+- The modifier takes the entry id (`{{ id | scholarly_citation:apa }}`)
+  because Antlers has no "this" for a loop item. Names are rendered in the
+  source's own case; case is never guessed.
+- The feed says `status: approved` and not which of the three routes
+  approved each item. A consumer that needs to know reads the site.

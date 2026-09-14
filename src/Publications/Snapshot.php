@@ -29,6 +29,9 @@ final class Snapshot
         $journal = null;
         $date = null;
         $abstract = null;
+        $volume = null;
+        $issue = null;
+        $pages = null;
         $authors = [];
         $urls = [];
 
@@ -37,6 +40,9 @@ final class Snapshot
             $journal ??= self::text($candidate->journal);
             $date ??= self::text($candidate->publicationDate);
             $abstract ??= self::text($candidate->abstract);
+            $volume ??= self::text($candidate->volume);
+            $issue ??= self::text($candidate->issue);
+            $pages ??= self::text($candidate->pages);
 
             if (\count($candidate->authors) > \count($authors)) {
                 $authors = $candidate->authors;
@@ -59,6 +65,9 @@ final class Snapshot
             'journal' => $journal,
             'publication_date' => $date,
             'abstract' => $abstract,
+            'volume' => $volume,
+            'issue' => $issue,
+            'pages' => $pages,
             'doi' => $merged->doi,
             'pmid' => $merged->pmid,
             'authors' => \array_map(static fn (array $a): array => [

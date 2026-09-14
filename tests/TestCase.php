@@ -29,6 +29,16 @@ abstract class TestCase extends AddonTestCase
 
     protected string $addonServiceProvider = ServiceProvider::class;
 
+    protected function getEnvironmentSetUp($app)
+    {
+        parent::getEnvironmentSetUp($app);
+
+        // Testbench ships no app key, and a web request through the session
+        // middleware encrypts. Only the feed test makes one, but a missing
+        // key throws before the request reaches anything of ours.
+        $app['config']->set('app.key', 'base64:'.\base64_encode(\random_bytes(32)));
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

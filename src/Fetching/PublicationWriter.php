@@ -25,9 +25,10 @@ use Statamic\Facades\Site;
  *              same namesake paper nightly must not re-queue it, or the
  *              verifier's rejection meant nothing. A verifier can attach a
  *              co-author by hand.
- *   approved   Bibliographic fields untouched, because "edit and confirm"
- *              corrects the snapshot and a refresh would undo the correction.
- *              Identifiers and the source list are added to. If the fetch is
+ *   approved   Fields the entry has are untouched, because "edit and
+ *              confirm" corrects the snapshot and a refresh would undo the
+ *              correction. Fields it lacks are filled in, and the source
+ *              list is added to. If the fetch is
  *              for a researcher NOT yet listed, they are added and the entry
  *              goes back to candidate: an approval was a person's decision
  *              about the listed names, and a PubMed name match could attach
@@ -248,9 +249,20 @@ final class PublicationWriter
      */
     private function addIdentifiers(EntryContract $entry, array $values, string $fetchedAt): void
     {
+        // Blanks may be filled: a value the entry never had cannot have been
+        // a verifier's correction. A value it has is left alone.
+        $fill = [];
+
+        foreach (['doi', 'pmid', 'journal', 'publication_date', 'volume', 'issue', 'pages', 'abstract'] as $field) {
+            $current = $entry->get($field);
+
+            if (($current === null || $current === '') && ($values[$field] ?? null) !== null) {
+                $fill[$field] = $values[$field];
+            }
+        }
+
         $entry->merge([
-            'doi' => $entry->get('doi') ?? $values['doi'],
-            'pmid' => $entry->get('pmid') ?? $values['pmid'],
+            ...$fill,
             'source_apis' => $this->unionSources($entry, $values['source_apis']),
             'fetched_at' => $fetchedAt,
             // From the stored title, which the verifier may have corrected,

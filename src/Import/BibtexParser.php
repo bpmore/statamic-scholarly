@@ -170,6 +170,9 @@ final class BibtexParser
             abstract: self::text($fields['abstract'] ?? null),
             authors: self::authors($fields['author'] ?? null),
             externalUrls: $urls,
+            volume: self::text($fields['volume'] ?? null),
+            issue: self::text($fields['number'] ?? $fields['issue'] ?? null),
+            pages: self::text($fields['pages'] ?? null),
         );
     }
 

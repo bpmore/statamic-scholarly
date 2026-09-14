@@ -28,6 +28,15 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- `{{ id | scholarly_citation:ama }}` (also `apa`, `vancouver`; add `:html`
+  for an italic journal and escaped text), rendering the stored record and
+  leaving out what it does not have.
+- A JSON feed at `/!/statamic-scholarly/feed/{researcher}` of approved
+  publications, with `year`, `journal` and `limit`, and
+  `{{ scholarly:feed_url }}` to point at it. The tag and the feed share one
+  approved-only query.
+- Volume, issue and pages are now stored from PubMed and from imports, and
+  an approved entry gains any field it lacked from a later fetch.
 - `scholarly:import file researcher`: BibTeX or CSV into candidates for
   one researcher, through the same de-duplication, matching and scoring a
   fetch uses. `--confirm-as=<user>` approves what the import brought in as

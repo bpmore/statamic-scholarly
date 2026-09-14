@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Bpmore\Scholarly\Tags;
 
-use Bpmore\Scholarly\Publications\PublicationsCollection;
+use Bpmore\Scholarly\Publications\ApprovedPublications;
 use Statamic\Contracts\Entries\QueryBuilder;
-use Statamic\Facades\Entry;
 use Statamic\Tags\Concerns\GetsQueryResults;
 use Statamic\Tags\Concerns\OutputsItems;
 use Statamic\Tags\Tags;
@@ -32,7 +31,7 @@ final class Scholarly extends Tags
 
     protected $defaultAsKey = 'publications';
 
-    public function __construct(private readonly PublicationsCollection $collection) {}
+    public function __construct(private readonly ApprovedPublications $approved) {}
 
     /**
      * {{ scholarly:publications researcher="..." }} ... {{ /scholarly:publications }}
@@ -48,6 +47,17 @@ final class Scholarly extends Tags
         $this->applySort($query);
 
         return $this->output($this->results($query));
+    }
+
+    /**
+     * {{ scholarly:feed_url researcher="..." }}: where the JSON feed for this
+     * researcher lives, or nothing when there is no such researcher.
+     */
+    public function feedUrl(): string
+    {
+        $id = $this->researcherId();
+
+        return $id === null ? '' : \route('statamic.statamic-scholarly.feed', ['researcher' => $id]);
     }
 
     /**
@@ -71,28 +81,14 @@ final class Scholarly extends Tags
             return null;
         }
 
-        $query = Entry::query()
-            ->where('collection', $this->collection->handle())
-            ->where('verification_status', 'approved');
+        $year = $this->params->get('year');
+        $journal = $this->params->get('journal');
 
-        // The addon stores researcher ids as strings; a host's entries
-        // field may store the same id as an integer on the Eloquent driver,
-        // and JSON containment is typed. Match either form.
-        $forms = \ctype_digit($researcherId) ? [$researcherId, (int) $researcherId] : [$researcherId];
-
-        $query->where(function (QueryBuilder $q) use ($forms): void {
-            foreach ($forms as $i => $form) {
-                $i === 0 ? $q->whereJsonContains('researchers', $form) : $q->orWhereJsonContains('researchers', $form);
-            }
-        });
-
-        $this->applyYear($query);
-
-        if (($journal = $this->params->get('journal')) !== null && $journal !== '') {
-            $query->where('journal', $journal);
-        }
-
-        return $query;
+        return $this->approved->query(
+            $researcherId,
+            \is_scalar($year) ? (string) $year : null,
+            \is_scalar($journal) ? (string) $journal : null,
+        );
     }
 
     private function researcherId(): ?string
@@ -107,43 +103,7 @@ final class Scholarly extends Tags
             return \is_string($current) || \is_int($current) ? ((string) $current ?: null) : null;
         }
 
-        $given = (string) $given;
-
-        if (Entry::find($given) !== null) {
-            return $given;
-        }
-
-        $bySlug = Entry::query()
-            ->where('collection', (string) config('statamic-scholarly.researchers.collection'))
-            ->where('slug', $given)
-            ->first();
-
-        return $bySlug === null ? null : (string) $bySlug->id();
-    }
-
-    /**
-     * `publication_date` is stored as an ISO prefix ("2020", "2020-03",
-     * "2020-03-24"), so a year window is a string comparison: at or after
-     * "2020" and before "2025" covers every precision in between.
-     */
-    private function applyYear(QueryBuilder $query): void
-    {
-        $year = $this->params->get('year');
-
-        if ($year === null || $year === '') {
-            return;
-        }
-
-        $parts = \explode(':', (string) $year, 2);
-        $from = \trim($parts[0]);
-        $to = \trim($parts[1] ?? $parts[0]);
-
-        if (! \ctype_digit($from) || ! \ctype_digit($to) || \strlen($from) !== 4 || \strlen($to) !== 4) {
-            return;
-        }
-
-        $query->where('publication_date', '>=', $from)
-            ->where('publication_date', '<', (string) ((int) $to + 1));
+        return $this->approved->resolveResearcherId((string) $given);
     }
 
     private function applySort(QueryBuilder $query): void

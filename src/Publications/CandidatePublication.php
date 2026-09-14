@@ -26,6 +26,9 @@ final readonly class CandidatePublication
         public ?string $abstract = null,
         public array $authors = [],
         public array $externalUrls = [],
+        public ?string $volume = null,
+        public ?string $issue = null,
+        public ?string $pages = null,
     ) {}
 
     /**
@@ -46,6 +49,9 @@ final readonly class CandidatePublication
             $abstract ?? $this->abstract,
             $authors === [] ? $this->authors : $authors,
             $this->externalUrls,
+            $this->volume,
+            $this->issue,
+            $this->pages,
         );
     }
 
