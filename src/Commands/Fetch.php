@@ -59,7 +59,7 @@ final class Fetch extends Command
 
         foreach ($researchers as $researcher) {
             if (! $this->option('sync')) {
-                FetchPublications::dispatch($researcher->id(), $sourceKey, $since);
+                FetchPublications::dispatch((string) $researcher->id(), $sourceKey, $since);
 
                 continue;
             }

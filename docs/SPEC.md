@@ -367,7 +367,9 @@ Testbench and Pest, in the package's own repository.
 
 1. **A host with entirely different collection and field handles.** The most valuable test in the
    suite, because it is what proves section 5.
-2. **Both entry drivers**, flat-file Stache and `statamic/eloquent-driver`.
+2. **Both entry drivers**, flat-file Stache and `statamic/eloquent-driver`, the latter with uuid and
+   with auto-increment entry ids. Built: `tests/Cases` run under all three, except on PHP 8.2, where
+   the driver itself cannot be installed.
 3. **De-duplication** across all three keys, including one paper arriving from three sources with
    differing metadata.
 4. **Rejection durability**: reject, re-run the fetch with the source still returning it, assert it
@@ -452,6 +454,7 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 | Version | Date | Summary |
 |---|---|---|
 | 1.0.0 | 2026-09-13 | Initial specification. |
+| 1.0.7 | 2026-09-14 | Section 14: the driver matrix as built. |
 | 1.0.6 | 2026-09-14 | Notification pipeline in section 9; `scholarly_last_run` in 7.1; open question 2 settled. |
 | 1.0.5 | 2026-09-14 | Section 11: tag parameters as built; the authors modifier is `scholarly_authors`; `type` deferred. |
 | 1.0.4 | 2026-09-13 | Section 10: Defer stamps `deferred_at`. The review panel is the listing plus actions (DECISIONS). |

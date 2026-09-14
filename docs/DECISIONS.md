@@ -337,3 +337,30 @@ and the addon must work on a flat-file site.
   from it, and the control panel can show it without reading a log.
 - The mail never calls a candidate a publication. The subject counts
   "candidate publications"; the lines count "new candidates".
+
+## 2026-09-14: The entry-heavy suite runs under three drivers
+
+**Decision.** The pipeline, tag, verification, notification and command
+tests are written once, in `tests/Cases`, and run three times: on the
+Stache, on the Eloquent driver with uuid entries, and on the Eloquent driver
+with auto-increment entries.
+
+**Why.** The spec promises both drivers, and the first run under Eloquent
+found four defects the Stache suite could not: the writer set entry ids
+itself, which fights an auto-increment column; three classes typed
+researcher ids as strings where the driver hands out integers; a strict
+in_array between a stored id and a live one failed on type; and the tag's
+JSON containment on `researchers` was typed, so an id a host's entries
+field stored as an integer never matched the string the addon stores. Every
+one of those is a silently empty result on a real site.
+
+**Rejected.** A single Eloquent shape. A site that imported its files has
+uuid entries and one installed fresh has integers, and the writer must not
+know which.
+
+**Rule that follows.** An entry id is a string inside the addon, cast at
+every boundary, and a stored list of ids is matched in both forms.
+
+**One limit.** The Eloquent driver for Statamic 6 needs PHP 8.3, so the 8.2
+job runs the Stache suite only. A host on 8.2 cannot install the driver
+either, so nothing is promised there that is not tested.

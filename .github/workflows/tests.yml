@@ -47,7 +47,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: json, mbstring
+          extensions: json, mbstring, pdo_sqlite, sqlite3
           coverage: none
 
       # Before installing, because a malformed manifest on a published package
@@ -67,9 +67,19 @@ jobs:
       # `--prefer-lowest` alone would take the oldest pre-release of anything
       # that has one; with `--prefer-stable` it takes the oldest stable, which
       # is the oldest thing a real install can end up with.
+      # The Eloquent driver for Statamic 6 needs PHP 8.3. A host on 8.2 cannot
+      # install it, so the 8.2 job does not either, and runs the Stache suite
+      # only. The driver is exercised by the other jobs.
       - name: Install the oldest dependencies the manifest allows
         if: matrix.dependencies == 'lowest'
-        run: composer update --prefer-lowest --prefer-stable --prefer-dist --no-interaction --no-progress
+        run: |
+          composer remove --dev statamic/eloquent-driver --no-update --no-interaction
+          composer update --prefer-lowest --prefer-stable --prefer-dist --no-interaction --no-progress
 
       - name: Run the suite
+        if: matrix.dependencies == 'highest'
         run: ./vendor/bin/pest
+
+      - name: Run the suite without the Eloquent driver
+        if: matrix.dependencies == 'lowest'
+        run: ./vendor/bin/pest --exclude-group=eloquent

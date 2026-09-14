@@ -37,7 +37,7 @@ final class FakeSource implements PublicationSource
 
     public function fetchForResearcher(Entry $researcher, ?string $since = null): FetchOutcome
     {
-        $this->calls[] = ['researcher' => $researcher->id(), 'since' => $since];
+        $this->calls[] = ['researcher' => (string) $researcher->id(), 'since' => $since];
 
         return $this->outcome;
     }

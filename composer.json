@@ -24,7 +24,8 @@
     },
     "require-dev": {
         "orchestra/testbench": "^10.11 || ^11.0",
-        "pestphp/pest": "^3.8 || ^4.0"
+        "pestphp/pest": "^3.8 || ^4.0",
+        "statamic/eloquent-driver": "^5.11"
     },
     "autoload": {
         "psr-4": {

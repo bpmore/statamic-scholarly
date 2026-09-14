@@ -73,8 +73,18 @@ final class Scholarly extends Tags
 
         $query = Entry::query()
             ->where('collection', $this->collection->handle())
-            ->where('verification_status', 'approved')
-            ->whereJsonContains('researchers', $researcherId);
+            ->where('verification_status', 'approved');
+
+        // The addon stores researcher ids as strings; a host's entries
+        // field may store the same id as an integer on the Eloquent driver,
+        // and JSON containment is typed. Match either form.
+        $forms = \ctype_digit($researcherId) ? [$researcherId, (int) $researcherId] : [$researcherId];
+
+        $query->where(function (QueryBuilder $q) use ($forms): void {
+            foreach ($forms as $i => $form) {
+                $i === 0 ? $q->whereJsonContains('researchers', $form) : $q->orWhereJsonContains('researchers', $form);
+            }
+        });
 
         $this->applyYear($query);
 
@@ -92,7 +102,9 @@ final class Scholarly extends Tags
         if ($given === null || $given === '') {
             $current = $this->context->get('id');
 
-            return \is_string($current) && $current !== '' ? $current : null;
+            // Ids are strings on the Stache and may be integers on the
+            // Eloquent driver; the stored researchers list holds strings.
+            return \is_string($current) || \is_int($current) ? ((string) $current ?: null) : null;
         }
 
         $given = (string) $given;
@@ -106,7 +118,7 @@ final class Scholarly extends Tags
             ->where('slug', $given)
             ->first();
 
-        return $bySlug?->id();
+        return $bySlug === null ? null : (string) $bySlug->id();
     }
 
     /**

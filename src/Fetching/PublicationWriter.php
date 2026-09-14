@@ -60,7 +60,7 @@ final class PublicationWriter
                 $created++;
             } else {
                 $entry = $existing;
-                $listed = \in_array($researcher->id(), $this->researchersOn($existing), true);
+                $listed = \in_array((string) $researcher->id(), $this->researchersOn($existing), true);
 
                 switch ($existing->get('verification_status')) {
                     case 'rejected':
@@ -126,20 +126,20 @@ final class PublicationWriter
      */
     private function create(EntryContract $researcher, array $values, string $fetchedAt): EntryContract
     {
-        // The id doubles as the slug. Titles collide (an erratum and its
-        // paper), and Statamic writes the file by slug, so a slug from the
-        // title is a silent overwrite waiting to happen.
-        $id = (string) Str::uuid();
-
+        // The slug is random rather than from the title: titles collide (an
+        // erratum and its paper), and the Stache writes the file by slug, so
+        // a title slug is a silent overwrite waiting to happen. The id is
+        // left to the driver: the Stache assigns a uuid, and the Eloquent
+        // driver assigns an integer or a uuid depending on the host's model,
+        // and an id set here would fight the integer one.
         $entry = Entry::make()
             ->collection($this->collection->handle())
             ->locale(Site::default()->handle())
-            ->id($id)
-            ->slug($id)
+            ->slug((string) Str::uuid())
             ->published(true)
             ->data([
                 ...$values,
-                'researchers' => [$researcher->id()],
+                'researchers' => [(string) $researcher->id()],
                 'verification_status' => 'candidate',
                 'fetched_at' => $fetchedAt,
             ]);
@@ -177,6 +177,9 @@ final class PublicationWriter
     }
 
     /**
+     * Ids are kept as strings whatever the driver hands out, so a strict
+     * comparison between a stored id and a live one cannot fail on type.
+     *
      * @return list<string>
      */
     private function researchersOn(EntryContract $entry): array
@@ -199,8 +202,8 @@ final class PublicationWriter
     {
         $ids = $this->researchersOn($entry);
 
-        if (! \in_array($researcher->id(), $ids, true)) {
-            $ids[] = $researcher->id();
+        if (! \in_array((string) $researcher->id(), $ids, true)) {
+            $ids[] = (string) $researcher->id();
         }
 
         return $ids;
@@ -251,7 +254,7 @@ final class PublicationWriter
 
                 foreach ($publication->titleMatches as [$a, $b]) {
                     if (\in_array($b, $other->candidates, true) || \in_array($a, $other->candidates, true)) {
-                        $ids[] = $entriesByIndex[$otherIndex]->id();
+                        $ids[] = (string) $entriesByIndex[$otherIndex]->id();
 
                         break;
                     }

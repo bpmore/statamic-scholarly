@@ -20,7 +20,7 @@ use function Statamic\trans_choice;
  */
 final class Confirm extends Action
 {
-    protected $icon = 'check';
+    protected $icon = 'checkmark';
 
     public function __construct(private readonly Verifier $verifier)
     {

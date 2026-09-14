@@ -16,7 +16,7 @@ use function Statamic\trans_choice;
  */
 final class Defer extends Action
 {
-    protected $icon = 'clock';
+    protected $icon = 'history';
 
     protected $confirm = false;
 
