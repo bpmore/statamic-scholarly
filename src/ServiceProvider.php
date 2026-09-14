@@ -63,6 +63,14 @@ class ServiceProvider extends AddonServiceProvider
      */
     protected $modifiers = [
         Modifiers\ScholarlyAuthors::class,
+        Modifiers\ScholarlyCitation::class,
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    protected $routes = [
+        'actions' => __DIR__.'/../routes/actions.php',
     ];
 
     public function register()
@@ -157,6 +165,11 @@ class ServiceProvider extends AddonServiceProvider
                 $channels === [] ? ['mail'] : $channels,
             );
         });
+
+        $this->app->bind(Publications\ApprovedPublications::class, fn (): Publications\ApprovedPublications => new Publications\ApprovedPublications(
+            $this->app->make(PublicationsCollection::class),
+            (string) config('statamic-scholarly.researchers.collection', 'people'),
+        ));
 
         // The shipped sources, in the order the snapshot prefers them: a
         // claim (ORCID) before an estimate (PubMed). A host adds a source by

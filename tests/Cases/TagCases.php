@@ -130,3 +130,59 @@ function tagCases(): array
         }
     ];
 }
+
+/**
+ * The citation modifier, the feed and its url, across the same drivers.
+ *
+ * @return array<string, Closure(): void>
+ */
+function feedCases(): array
+{
+    return [
+        'renders a citation in each style from the loop item, plain or html' => function (): void {
+            $ada = tagResearcher('ada');
+            publication([
+                'title' => 'Intramyocardial Hemorrhage After Myocardial Infarction', 'journal' => 'Circulation & Co',
+                'publication_date' => '2025-08-12', 'volume' => '152', 'issue' => '6', 'pages' => '349-351',
+                'doi' => '10.1161/CIRCULATIONAHA.125.074645', 'researchers' => [$ada->id()],
+                'authors' => [['name' => 'Berry C'], ['name' => 'Carberry J'], ['name' => 'Dharmakumar R']],
+            ]);
+
+            $tpl = fn (string $args) => '{{ scholarly:publications researcher="ada" }}{{ id | scholarly_citation:'.$args.' }}{{ /scholarly:publications }}';
+
+            expect(render($tpl('ama')))->toBe('Berry C, Carberry J, Dharmakumar R. Intramyocardial Hemorrhage After Myocardial Infarction. Circulation & Co. 2025;152(6):349-351. doi:10.1161/CIRCULATIONAHA.125.074645')
+                ->and(render($tpl('vancouver')))->toBe('Berry C, Carberry J, Dharmakumar R. Intramyocardial Hemorrhage After Myocardial Infarction. Circulation & Co. 2025 Aug 12;152(6):349-351. doi: 10.1161/CIRCULATIONAHA.125.074645')
+                ->and(render($tpl('apa')))->toBe('Berry, C., Carberry, J., & Dharmakumar, R. (2025). Intramyocardial Hemorrhage After Myocardial Infarction. Circulation & Co, 152(6), 349-351. https://doi.org/10.1161/CIRCULATIONAHA.125.074645')
+                ->and(render($tpl('apa:html')))->toBe('Berry, C., Carberry, J., &amp; Dharmakumar, R. (2025). Intramyocardial Hemorrhage After Myocardial Infarction. <i>Circulation &amp; Co</i>, 152(6), 349-351. https://doi.org/10.1161/CIRCULATIONAHA.125.074645');
+        },
+
+        'serves the feed as json with the same approved-only rule, and the tag knows its url' => function (): void {
+            $ada = tagResearcher('ada');
+            publication(['title' => 'Old', 'researchers' => [$ada->id()], 'publication_date' => '2019', 'doi' => '10.1000/old']);
+            publication(['title' => 'New', 'researchers' => [$ada->id()], 'publication_date' => '2024-05', 'pmid' => '7']);
+            publication(['title' => 'Candidate', 'researchers' => [$ada->id()], 'publication_date' => '2025', 'verification_status' => 'candidate']);
+
+            $url = render('{{ scholarly:feed_url researcher="ada" }}');
+
+            expect($url)->toEndWith('/!/statamic-scholarly/feed/'.$ada->id())
+                ->and(render('{{ scholarly:feed_url researcher="nobody" }}'))->toBe('');
+
+            $response = $this->getJson($url);
+            $response->assertOk();
+            $json = $response->json();
+
+            expect($json['status'])->toBe('approved')
+                ->and($json['count'])->toBe(2)
+                ->and($json['researcher']['title'])->toBe('Ada')
+                ->and(array_column($json['publications'], 'title'))->toBe(['New', 'Old'])
+                ->and($json['publications'][0]['pmid'])->toBe('7')
+                ->and($json['publications'][0]['authors'])->toBe([]);
+
+            expect($this->getJson($url.'?year=2019')->json('count'))->toBe(1)
+                ->and($this->getJson($url.'?limit=1')->json('publications.0.title'))->toBe('New')
+                ->and($this->getJson('/!/statamic-scholarly/feed/ada')->json('count'))->toBe(2, 'a slug works too');
+
+            $this->getJson('/!/statamic-scholarly/feed/nobody')->assertNotFound();
+        },
+    ];
+}

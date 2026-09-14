@@ -155,7 +155,7 @@ function pipelineCases(): array
         $entry->set('verification_status', 'approved')->set('title', 'Corrected title')->save();
 
         $source->willReturn(found('orcid', new CandidatePublication('orcid', title: 'Typo in titel', doi: '10.1000/a', pmid: '44')));
-        $pubmed = new FakeSource('pubmed', found('pubmed', new CandidatePublication('pubmed', title: 'Typo in titel.', doi: '10.1000/a')));
+        $pubmed = new FakeSource('pubmed', found('pubmed', new CandidatePublication('pubmed', title: 'Typo in titel.', doi: '10.1000/a', journal: 'Filled in')));
         $report = pipeline($source, $pubmed)($researcher);
 
         $entries = publicationsFor($researcher);
@@ -164,6 +164,7 @@ function pipelineCases(): array
             ->and($entries[0]->get('title'))->toBe('Corrected title')
             ->and($entries[0]->get('verification_status'))->toBe('approved')
             ->and($entries[0]->get('pmid'))->toBe('44')
+            ->and($entries[0]->get('journal'))->toBe('Filled in', 'a blank the entry never had is filled; the title it had is not')
             ->and($entries[0]->get('source_apis'))->toBe(['orcid', 'pubmed'])
             ->and($report->written->keptApproved)->toBe(1);
         },

@@ -30,6 +30,9 @@ final class CsvParser
         'authors' => ['authors', 'author', 'creators'],
         'abstract' => ['abstract', 'summary'],
         'url' => ['url', 'link'],
+        'volume' => ['volume', 'vol'],
+        'issue' => ['issue', 'number', 'no'],
+        'pages' => ['pages', 'page'],
     ];
 
     /**
@@ -99,6 +102,9 @@ final class CsvParser
                 abstract: $cell('abstract'),
                 authors: self::authors($cell('authors')),
                 externalUrls: $url !== null && \preg_match('#^https?://#i', $url) === 1 ? [$url] : [],
+                volume: $cell('volume'),
+                issue: $cell('issue'),
+                pages: $cell('pages'),
             );
         }
 

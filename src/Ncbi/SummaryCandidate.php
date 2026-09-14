@@ -39,6 +39,9 @@ final class SummaryCandidate
             publicationDate: self::date(self::string($row['pubdate'] ?? null)),
             authors: self::authors($row['authors'] ?? null),
             externalUrls: $pmid === null ? [] : ['https://pubmed.ncbi.nlm.nih.gov/'.$pmid.'/'],
+            volume: self::string($row['volume'] ?? null),
+            issue: self::string($row['issue'] ?? null),
+            pages: self::string($row['pages'] ?? null),
         );
     }
 

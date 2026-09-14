@@ -6,6 +6,6 @@ require_once __DIR__.'/../../Cases/TagCases.php';
 
 beforeEach(fn () => tagCasesSetup());
 
-foreach (tagCases() as $name => $body) {
+foreach ([...tagCases(), ...feedCases()] as $name => $body) {
     it($name, $body);
 }

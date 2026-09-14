@@ -332,6 +332,8 @@ alike. Candidate and rejected entries are unreachable from every frontend surfac
 
 Phase 2 adds `scholarly:feed` (JSON), the `scholarly:citation` modifier (AMA, APA, Vancouver), and a
 read-only control-panel fieldtype showing recent verified publications on the researcher entry.
+**Built:** the feed at `/!/statamic-scholarly/feed/{researcher}` with `{{ scholarly:feed_url }}`, and
+`{{ id | scholarly_citation:<style> }}`; both read the one approved-only query. The fieldtype is not.
 
 Control-panel UI comes from Statamic's own component library rather than hand-rolled widgets.
 
@@ -461,6 +463,7 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 | Version | Date | Summary |
 |---|---|---|
 | 1.0.0 | 2026-09-13 | Initial specification. |
+| 1.0.12 | 2026-09-14 | Section 11: feed and citation modifier as built. |
 | 1.0.11 | 2026-09-14 | Section 9.1: the discard floor as built; all three bands in. |
 | 1.0.10 | 2026-09-14 | Section 9.1: auto-approval built; discard still open. |
 | 1.0.9 | 2026-09-14 | Section 9.1: calibration built; acting on the score is open. |

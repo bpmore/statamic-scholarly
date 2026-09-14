@@ -176,6 +176,14 @@ and `journal` work as on the collection tag. `scholarly_authors:3` joins the
 first three author names and adds "et al." when there are more.
 `{{ scholarly:publications_count researcher="{id}" }}` gives the number.
 
+Inside the loop, `{{ id | scholarly_citation:ama }}` renders a citation
+(`ama`, `apa` or `vancouver`; add `:html` for an italic journal and escaped
+text). What the record lacks is left out, never filled in.
+
+`{{ scholarly:feed_url researcher="{id}" }}` is a JSON feed of the same
+approved list, at `/!/statamic-scholarly/feed/{researcher}`, with `?year=`,
+`?journal=` and `?limit=`.
+
 ## Adding your own source
 
 Implement `Bpmore\Scholarly\Contracts\PublicationSource` and bind it. A source
