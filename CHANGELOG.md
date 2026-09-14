@@ -10,21 +10,11 @@ have verified entries by hand and cannot re-verify them.
 
 ## [Unreleased]
 
-### Fixed
+Nothing yet.
 
-- A refresh wrote every snapshot field, nulls included, so a PMID-only
-  source erased the DOI a DOI-only source had stored the night before. Only
-  values the run has are written now, and `source_apis` accumulates.
-- The Confirm, Reject and Defer actions and the review nav item named icons
-  that do not exist in Statamic 6, so the control panel logged a warning for
-  each and drew nothing.
-- Under the Eloquent entry driver: the writer no longer sets entry ids
-  (which fought an auto-increment column), researcher ids are cast to
-  strings everywhere the driver may hand out integers, and the tag matches a
-  researcher id stored as either a string or an integer. The suite now runs
-  under the Stache and under both Eloquent id shapes.
-- The E-summary client cached a timeout or a refused request as a missing
-  record for a week. Only a miss NCBI reports is recorded now.
+## [0.1.0] - 2026-09-14
+
+First release. Everything below is new.
 
 ### Added
 
