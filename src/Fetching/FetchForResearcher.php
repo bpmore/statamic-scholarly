@@ -25,6 +25,12 @@ final class FetchForResearcher
 {
     public const LAST_FETCHED_FIELD = 'scholarly_last_fetched';
 
+    /**
+     * The last run's verdict, on the researcher, so a notification and the
+     * control panel can say "partial" without re-reading the log.
+     */
+    public const LAST_RUN_FIELD = 'scholarly_last_run';
+
     public function __construct(
         private readonly SourceRegistry $sources,
         private readonly Deduplicator $deduplicator,
@@ -78,27 +84,33 @@ final class FetchForResearcher
 
         $report = new RunReport($researcher->id(), $outcomes, $skipped, $written, $titleMatches);
 
-        $this->stamp($researcher, $stamps, $report->sourcesRun(), $startedAt);
+        $this->stamp($researcher, $stamps, $report, $startedAt);
         $this->log($researcher, $report);
 
         return $report;
     }
 
     /**
+     * The per-source stamps advance only for sources that completed. The
+     * last-run record is written every time, partial or not: a partial run
+     * that left no trace on the researcher would be the silent failure.
+     *
      * @param  array<string, mixed>  $stamps
-     * @param  list<string>  $completed
      */
-    private function stamp(EntryContract $researcher, array $stamps, array $completed, string $startedAt): void
+    private function stamp(EntryContract $researcher, array $stamps, RunReport $report, string $startedAt): void
     {
-        if ($completed === []) {
-            return;
-        }
-
-        foreach ($completed as $key) {
+        foreach ($report->sourcesRun() as $key) {
             $stamps[$key] = $startedAt;
         }
 
-        $researcher->set(self::LAST_FETCHED_FIELD, $stamps);
+        $researcher->merge([
+            self::LAST_FETCHED_FIELD => $stamps,
+            self::LAST_RUN_FIELD => [
+                'at' => $startedAt,
+                'complete' => $report->isComplete(),
+                'summary' => $report->summary(),
+            ],
+        ]);
         $researcher->saveQuietly();
     }
 

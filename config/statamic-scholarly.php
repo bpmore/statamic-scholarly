@@ -128,9 +128,24 @@ return [
 
     'schedule' => 'daily',
 
+    /*
+    |--------------------------------------------------------------------------
+    | Notifications
+    |--------------------------------------------------------------------------
+    |
+    | `scholarly:notify` mails whoever verifies for a researcher (the
+    | `scholarly_verifier` field on the researcher entry) when candidates are
+    | waiting. `fallback` is who gets it when a researcher has no verifier;
+    | with neither, the candidates are logged and nobody is mailed.
+    |
+    | `digest` sends one mail per verifier covering every researcher they
+    | verify for. Off, it is one mail per researcher.
+    |
+    */
     'notifications' => [
         'channels' => ['mail'],
         'digest' => true,
+        'fallback' => env('SCHOLARLY_VERIFIER_EMAIL'),
     ],
 
 ];
