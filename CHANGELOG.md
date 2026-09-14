@@ -28,6 +28,13 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- A `webhook` notification channel: each digest POSTed as JSON to
+  `notifications.webhook_url`, signed with HMAC-SHA256 under
+  `webhook_secret` in `X-Scholarly-Signature`. Dropped when no URL is set;
+  a failed post is logged and does not stop the mail.
+- The "Publication review" nav item shows how many candidates are waiting,
+  for users who can verify. Statamic 6 has no in-panel inbox, so there is
+  no bell.
 - A `scholarly` fieldset, written by `scholarly:install` for the researcher
   blueprint: the verifier, the ten newest approved publications, the number
   of candidates waiting, and the last fetch's verdict. Written by the addon

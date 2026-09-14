@@ -202,3 +202,84 @@ function notifyCases(): array
         }
     ];
 }
+
+/**
+ * The webhook channel and the nav count, across the same drivers.
+ *
+ * @return array<string, Closure(): void>
+ */
+function webhookCases(): array
+{
+    return [
+        'sends on the webhook channel too when one is configured, and posts a signed digest' => function (): void {
+            config()->set('statamic-scholarly.notifications.channels', ['mail', 'webhook']);
+            config()->set('statamic-scholarly.notifications.webhook_url', 'https://hooks.example.test/scholarly');
+            config()->set('statamic-scholarly.notifications.webhook_secret', 'shh');
+
+            $verifier = verifierUser('v1');
+            $ada = notifyResearcher('Ada', 'v1', ['at' => '2026-09-14T00:00:00+00:00', 'complete' => false, 'summary' => 'PARTIAL: failed pubmed']);
+            waiting([$ada->id()]);
+            waiting([$ada->id()]);
+
+            app(\Bpmore\Scholarly\Notifications\NotifyVerifiers::class)();
+
+            $sent = null;
+            Notification::assertSentTo($verifier, CandidatesAwaitingReview::class, function (CandidatesAwaitingReview $n, array $channels) use (&$sent): bool {
+                $sent = $n;
+
+                return $channels === ['mail', 'webhook'];
+            });
+
+            // The channel itself, against a faked endpoint.
+            \Illuminate\Support\Facades\Http::fake(['hooks.example.test/*' => \Illuminate\Support\Facades\Http::response('', 204)]);
+            (new \Bpmore\Scholarly\Notifications\WebhookChannel('https://hooks.example.test/scholarly', 'shh'))->send($verifier, $sent);
+
+            \Illuminate\Support\Facades\Http::assertSentCount(1);
+            \Illuminate\Support\Facades\Http::assertSent(function (\Illuminate\Http\Client\Request $r): bool {
+                $body = json_decode($r->body(), true);
+                $expected = 'sha256='.hash_hmac('sha256', $r->body(), 'shh');
+
+                return $r->url() === 'https://hooks.example.test/scholarly'
+                    && $r->hasHeader(\Bpmore\Scholarly\Notifications\WebhookChannel::SIGNATURE_HEADER, $expected)
+                    && $body['event'] === 'candidates_awaiting_review'
+                    && $body['recipient'] === 'v1@example.edu'
+                    && $body['total_waiting'] === 2
+                    && $body['researchers'][0]['name'] === 'Ada'
+                    && $body['researchers'][0]['last_run_complete'] === false
+                    && str_contains($body['review_url'], '/cp/collections/');
+            });
+        },
+
+        'drops the webhook channel when no url is configured, and an outage is logged rather than thrown' => function (): void {
+            config()->set('statamic-scholarly.notifications.channels', ['mail', 'webhook']);
+            config()->set('statamic-scholarly.notifications.webhook_url', null);
+
+            $verifier = verifierUser('v1');
+            $ada = notifyResearcher('Ada', 'v1');
+            waiting([$ada->id()]);
+
+            app(\Bpmore\Scholarly\Notifications\NotifyVerifiers::class)();
+
+            Notification::assertSentTo($verifier, CandidatesAwaitingReview::class, fn ($n, array $channels) => $channels === ['mail']);
+
+            \Illuminate\Support\Facades\Http::fake(['down.example.test/*' => \Illuminate\Support\Facades\Http::response('', 503)]);
+            \Illuminate\Support\Facades\Log::spy();
+            $notification = new CandidatesAwaitingReview([], 'https://x.test/cp');
+
+            (new \Bpmore\Scholarly\Notifications\WebhookChannel('https://down.example.test/hook', null))->send($verifier, $notification);
+
+            \Illuminate\Support\Facades\Log::shouldHaveReceived('warning')->withArgs(fn (string $m) => str_contains($m, 'webhook'))->once();
+            \Illuminate\Support\Facades\Http::assertSent(fn (\Illuminate\Http\Client\Request $r) => ! $r->hasHeader(\Bpmore\Scholarly\Notifications\WebhookChannel::SIGNATURE_HEADER));
+        },
+
+        'counts the candidates a verifier would see, for the nav item' => function (): void {
+            $ada = notifyResearcher('Ada');
+            waiting([$ada->id()]);
+            waiting([$ada->id()]);
+            waiting([$ada->id()], ['discarded_at' => '2026-01-01T00:00:00+00:00']);
+            waiting([$ada->id()], ['verification_status' => 'approved']);
+
+            expect(app(\Bpmore\Scholarly\Verification\WaitingCount::class)())->toBe(2, 'set aside and approved are not waiting');
+        },
+    ];
+}

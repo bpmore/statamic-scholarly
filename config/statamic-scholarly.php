@@ -158,11 +158,23 @@ return [
     | `digest` sends one mail per verifier covering every researcher they
     | verify for. Off, it is one mail per researcher.
     |
+    | Add 'webhook' to `channels` and set `webhook_url` to also POST each
+    | digest as JSON, signed with HMAC-SHA256 of the body under
+    | `webhook_secret` in the X-Scholarly-Signature header. 'webhook' with
+    | no URL is dropped, not sent nowhere. A failed post is logged and does
+    | not stop the mail.
+    |
+    | There is no in-panel "bell": Statamic 6 has no notification inbox. The
+    | count of candidates waiting is shown on the "Publication review" nav
+    | item instead, for users who can verify.
+    |
     */
     'notifications' => [
         'channels' => ['mail'],
         'digest' => true,
         'fallback' => env('SCHOLARLY_VERIFIER_EMAIL'),
+        'webhook_url' => env('SCHOLARLY_WEBHOOK_URL'),
+        'webhook_secret' => env('SCHOLARLY_WEBHOOK_SECRET'),
     ],
 
 ];

@@ -431,7 +431,9 @@ scoring and no auto-approval.
 
 **Phase 2**: calibrated scoring with the three-band model and the explainable breakdown; Scopus and
 Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `scholarly:feed`,
-`scholarly:citation`, and the read-only fieldtype.
+`scholarly:citation`, and the read-only fieldtype. **Built** as of 2026-09-14: all of it except Scopus
+and Web of Science (no API keys to verify against), with the bell replaced by a waiting count on the
+nav item and the fieldtype by a written fieldset (DECISIONS).
 
 ## 17. Open questions
 
@@ -464,6 +466,7 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 | Version | Date | Summary |
 |---|---|---|
 | 1.0.0 | 2026-09-13 | Initial specification. |
+| 1.0.14 | 2026-09-14 | Section 16: Phase 2 status; the bell as a nav count. |
 | 1.0.13 | 2026-09-14 | Section 11: the researcher-page fieldset in place of a fieldtype. |
 | 1.0.12 | 2026-09-14 | Section 11: feed and citation modifier as built. |
 | 1.0.11 | 2026-09-14 | Section 9.1: the discard floor as built; all three bands in. |

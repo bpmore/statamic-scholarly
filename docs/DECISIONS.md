@@ -622,3 +622,29 @@ a listing.
 fieldtype (a build step, and hand-rolled UI); the fieldset shipped as a
 static file (it has to name the configured publications collection, which
 only the install command knows).
+
+## 2026-09-14: A signed webhook, and a count in the nav instead of a bell
+
+**Decision.** `notifications.channels` may include `webhook`. With
+`webhook_url` set, every digest is also POSTed as JSON, signed with
+HMAC-SHA256 of the exact body under `webhook_secret` in
+`X-Scholarly-Signature`. `webhook` with no URL is dropped, not sent
+nowhere. A failed post is logged and does not stop the mail. There is no
+in-panel bell: the "Publication review" nav item shows the number of
+candidates waiting, for users who can verify.
+
+**Why no bell.** Statamic 6 has no notification inbox; its only in-panel
+notice is a session toast, gone on the next request. A bell would be a Vue
+component of this addon's own plus a store for it, and the repository's
+rule is that control-panel UI comes from Statamic's own components. A count
+on the nav item is a nav item, which Statamic has, and is read once per
+control-panel request with no network.
+
+**Why signed.** A URL leaks. An unsigned webhook is an invitation to feed a
+site's verifiers a fake "63 candidates waiting"; a signature under a secret
+the receiver holds is the difference between this addon and anyone who
+found the URL.
+
+**Rejected.** Laravel's `database` notification channel as the bell: it
+needs a `notifications` table the host must migrate, and nothing in the
+panel would show what it stored.
