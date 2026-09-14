@@ -258,8 +258,15 @@ Adding an identifier never destroys an edit, so that much is still written.
   existing collection: if the handle exists, it is used as is.
 - Entries are slugged by their id. Titles collide (an erratum and its paper),
   and Statamic writes the file by slug, so a title slug is a silent overwrite.
-- Title matches within a run are linked both ways in `possible_duplicates`.
-  Matches against entries from earlier runs are not yet detected.
+- Title matches are linked both ways in `possible_duplicates`, within a run
+  and against entries from earlier runs, through a stored `title_key`. Two
+  entries that already share a DOI or PMID are never title-linked: apart,
+  they were separated on purpose. Entries written before the key existed
+  gain it on their next refresh; an approved one gains it from its stored,
+  possibly corrected, title.
+- A refresh writes only the values the run has. A PMID-only source tonight
+  does not erase the DOI a DOI-only source stored last night, and
+  `source_apis` is the union of every source that ever reported the paper.
 
 ## 2026-09-13: The review panel is the collection listing plus actions
 

@@ -107,6 +107,7 @@ final class PublicationsCollection
                             $field('possible_duplicates', ['type' => 'entries', 'display' => 'Possible duplicates', 'collections' => [$this->handle], 'instructions' => 'Same title, different identifiers. Not merged: an erratum and its paper share a title.']),
                             $field('fetched_at', ['type' => 'date', 'display' => 'Last fetched', 'time_enabled' => true, 'read_only' => true]),
                             $field('notified_at', ['type' => 'date', 'display' => 'Verifier notified at', 'time_enabled' => true, 'read_only' => true]),
+                            $field('title_key', ['type' => 'text', 'display' => 'Title key', 'instructions' => 'The title as compared across entries. Written by the fetch.', 'read_only' => true, 'listable' => false]),
                         ]],
                     ],
                 ],
