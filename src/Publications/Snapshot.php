@@ -49,8 +49,13 @@ final class Snapshot
             }
         }
 
+        $title ??= self::fallbackTitle($merged);
+
         return [
-            'title' => $title ?? self::fallbackTitle($merged),
+            'title' => $title,
+            // Stored so a later run can find this entry by title without
+            // loading the collection: the key the de-duplicator flags on.
+            'title_key' => PublicationKey::normaliseTitle($title),
             'journal' => $journal,
             'publication_date' => $date,
             'abstract' => $abstract,

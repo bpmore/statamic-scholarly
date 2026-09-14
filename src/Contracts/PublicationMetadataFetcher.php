@@ -47,4 +47,18 @@ interface PublicationMetadataFetcher
      * @throws UnexpectedNcbiResponse when the answer was not a summary
      */
     public function summariesForPmids(array $pmids): array;
+
+    /**
+     * What a summary does not carry: author affiliations, author ORCID iDs
+     * and the abstract. E-fetch rather than E-summary, and the fields
+     * disambiguation runs on.
+     *
+     * @param  list<string>  $pmids
+     * @return array<int|string, array{abstract: string|null, authors: list<array{name: string, affiliation: string|null, orcid: string|null}>}|null>
+     *                                                                                                                                  Keyed by PMID, every requested PMID present; null where NCBI has no record
+     *
+     * @throws NcbiUnavailable when NCBI could not be reached or refused
+     * @throws UnexpectedNcbiResponse when the answer was not an article set
+     */
+    public function detailsForPmids(array $pmids): array;
 }

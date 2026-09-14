@@ -180,6 +180,22 @@ function pipelineCases(): array
             ->and($report->written->refreshed)->toBe(1);
         },
 
+        'keeps a stored value when tonight\'s source has none for it' => function (): void {
+            // Found by the shared-identifier case: a refresh once wrote every
+            // snapshot field, nulls included, and a PMID-only source erased
+            // the DOI a DOI-only source had stored the night before.
+            $researcher = aResearcher();
+            pipeline(new FakeSource('orcid', found('orcid', new CandidatePublication('orcid', title: 'Both ids', doi: '10.1000/keep', pmid: '9', journal: 'J'))))($researcher);
+            pipeline(new FakeSource('pubmed', found('pubmed', new CandidatePublication('pubmed', title: 'Both ids', pmid: '9'))))($researcher);
+
+            $entries = publicationsFor($researcher);
+
+            expect($entries)->toHaveCount(1)
+                ->and($entries[0]->get('doi'))->toBe('10.1000/keep')
+                ->and($entries[0]->get('journal'))->toBe('J')
+                ->and($entries[0]->get('source_apis'))->toBe(['orcid', 'pubmed'], 'a source that reported it last month still reported it');
+        },
+
         'stamps last-fetched per source, only for sources that completed, and passes it back as since' => function (): void {
         $researcher = aResearcher();
         $orcid = new FakeSource('orcid', found('orcid'));
@@ -254,6 +270,55 @@ function pipelineCases(): array
             ->and($report->titleMatches)->toBe(2)
             ->and($byPmid['1']->get('possible_duplicates'))->toBe([(string) $byPmid['2']->id()])
             ->and($byPmid['2']->get('possible_duplicates'))->toBe([(string) $byPmid['1']->id()]);
+        },
+
+        'links a title match against an entry from an earlier run, both ways, and reports it' => function (): void {
+            // Last month's conference abstract and tonight's full paper never
+            // arrive in the same run, so a within-run check would miss them.
+            $researcher = aResearcher();
+            $run = pipeline(new FakeSource('pubmed', found('pubmed',
+                new CandidatePublication('pubmed', title: 'Deep Learning for ECG Analysis', pmid: '1'),
+            )));
+            $run($researcher);
+
+            $later = pipeline(new FakeSource('orcid', found('orcid',
+                new CandidatePublication('orcid', title: 'Deep learning for ECG analysis.', doi: '10.1000/full'),
+            )));
+            $report = $later($researcher);
+
+            $entries = collect(publicationsFor($researcher))->keyBy(fn ($e) => $e->get('title_key'));
+            $abstract = collect(publicationsFor($researcher))->first(fn ($e) => $e->get('pmid') === '1');
+            $full = collect(publicationsFor($researcher))->first(fn ($e) => $e->get('doi') === '10.1000/full');
+
+            expect(publicationsFor($researcher))->toHaveCount(2)
+                ->and($report->titleMatches)->toBe(1)
+                ->and($full->get('possible_duplicates'))->toBe([(string) $abstract->id()])
+                ->and(Entry::find($abstract->id())->get('possible_duplicates'))->toBe([(string) $full->id()]);
+        },
+
+        'does not title-link two entries that already share an identifier' => function (): void {
+            // Two entries with one DOI, kept apart by hand: a title link
+            // between them would only nag. The fetch matches the second by
+            // PMID, refreshes it, and must leave the first unlinked.
+            $researcher = aResearcher();
+            app(PublicationsCollection::class)->ensure();
+            $first = Entry::make()->collection(PUBLICATIONS)->slug('kept-apart-a')->data([
+                'title' => 'Same title', 'title_key' => 'same title', 'doi' => '10.1000/same',
+                'verification_status' => 'rejected', 'researchers' => [(string) $researcher->id()],
+            ]);
+            $first->save();
+            $second = Entry::make()->collection(PUBLICATIONS)->slug('kept-apart-b')->data([
+                'title' => 'Same title', 'title_key' => 'same title', 'doi' => '10.1000/same', 'pmid' => '5',
+                'verification_status' => 'candidate', 'researchers' => [(string) $researcher->id()],
+            ]);
+            $second->save();
+
+            $report = pipeline(new FakeSource('pubmed', found('pubmed', new CandidatePublication('pubmed', title: 'Same title', pmid: '5'))))($researcher);
+
+            expect($report->written->refreshed)->toBe(1)
+                ->and($report->titleMatches)->toBe(0)
+                ->and(Entry::find($first->id())->get('possible_duplicates'))->toBeNull()
+                ->and(Entry::find($second->id())->get('possible_duplicates'))->toBeNull();
         },
 
         'attaches a co-author to the one entry for a shared paper while it is a candidate' => function (): void {

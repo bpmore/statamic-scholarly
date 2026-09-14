@@ -48,6 +48,14 @@ function carberryBody(): string
     return (string) file_get_contents(__DIR__.'/../__fixtures__/orcid/0000-0002-1825-0097-works.json');
 }
 
+function carberryBulk(): string
+{
+    return (string) file_get_contents(__DIR__.'/../__fixtures__/orcid/0000-0002-1825-0097-works-bulk.json');
+}
+
+const WORKS_URL = 'pub.orcid.org/v3.0/'.CARBERRY.'/works';
+const BULK_URL = 'pub.orcid.org/v3.0/'.CARBERRY.'/works/*';
+
 it('is configured only when enabled and the host has mapped an ORCID field', function (): void {
     expect(orcidSource()->isConfigured())->toBeTrue()
         ->and(orcidSource(['enabled' => false])->isConfigured())->toBeFalse();
@@ -58,7 +66,10 @@ it('is configured only when enabled and the host has mapped an ORCID field', fun
 });
 
 it('reads the ORCID iD from the host-mapped field and asks ORCID for that record', function (): void {
-    Http::fake(['pub.orcid.org/v3.0/'.CARBERRY.'/works' => Http::response(carberryBody(), 200)]);
+    Http::fake([
+        WORKS_URL => Http::response(carberryBody(), 200),
+        BULK_URL => Http::response(carberryBulk(), 200),
+    ]);
 
     $outcome = orcidSource()->fetchForResearcher(researcher([ORCID_HANDLE => CARBERRY]));
 
@@ -87,7 +98,7 @@ it('ignores the shipped default handle when the host mapped a different one', fu
 });
 
 it('sends the access token as a bearer when one is configured', function (): void {
-    Http::fake(['*' => Http::response(carberryBody(), 200)]);
+    Http::fake([WORKS_URL => Http::response(carberryBody(), 200), BULK_URL => Http::response(carberryBulk(), 200)]);
 
     orcidSource(['access_token' => 'read-public-token'])->fetchForResearcher(researcher([ORCID_HANDLE => CARBERRY]));
 
@@ -95,7 +106,10 @@ it('sends the access token as a bearer when one is configured', function (): voi
 });
 
 it('uses the configured base url, so the sandbox can be pointed at', function (): void {
-    Http::fake(['pub.sandbox.orcid.org/*' => Http::response(carberryBody(), 200)]);
+    Http::fake([
+        'pub.sandbox.orcid.org/v3.0/'.CARBERRY.'/works' => Http::response(carberryBody(), 200),
+        'pub.sandbox.orcid.org/v3.0/'.CARBERRY.'/works/*' => Http::response(carberryBulk(), 200),
+    ]);
 
     orcidSource(['base_url' => 'https://pub.sandbox.orcid.org/v3.0'])->fetchForResearcher(researcher([ORCID_HANDLE => CARBERRY]));
 
@@ -166,7 +180,7 @@ it('distinguishes a record with no works from a run that could not look', functi
 });
 
 it('passes since through as a last-modified filter', function (): void {
-    Http::fake(['*' => Http::response(carberryBody(), 200)]);
+    Http::fake([WORKS_URL => Http::response(carberryBody(), 200), BULK_URL => Http::response(carberryBulk(), 200)]);
 
     $outcome = orcidSource()->fetchForResearcher(researcher([ORCID_HANDLE => CARBERRY]), '2020-01-01T00:00:00Z');
 
@@ -183,3 +197,43 @@ it('refuses a since value it cannot parse instead of fetching everything', funct
 
     expect($outcome->failures[0]->reason)->toBe(Reason::RefusedLocally);
 });
+
+it('fills in contributors and the description from the full records, one bulk request per hundred', function (): void {
+    Http::fake([
+        WORKS_URL => Http::response(carberryBody(), 200),
+        BULK_URL => Http::response(carberryBulk(), 200),
+    ]);
+
+    $outcome = orcidSource()->fetchForResearcher(researcher([ORCID_HANDLE => CARBERRY]));
+
+    $plasmons = collect($outcome->candidates)->first(fn ($c) => $c->doi === '10.1109/TPS.1987.4316723');
+    $other = collect($outcome->candidates)->first(fn ($c) => $c->doi === '10.5555/12345680');
+
+    expect($outcome->isComplete())->toBeTrue()
+        ->and($plasmons->authors)->toBe([
+            ['name' => 'Quinn, J.J.', 'affiliation' => null, 'orcid' => null],
+            ['name' => 'Carberry, J.S.', 'affiliation' => null, 'orcid' => null],
+        ])
+        ->and($other->authors)->toBe([], 'the recorded bulk carries no contributors for this work');
+
+    Http::assertSentCount(2);
+    Http::assertSent(static fn (Request $request): bool => $request->url() === 'https://pub.orcid.org/v3.0/'.CARBERRY.'/works/9543020,4562455,4562454,4562453,4562456,19980729');
+});
+
+it('still returns the candidates and reports the run partial when the full records cannot be read', function (int $status, string $body, Reason $reason): void {
+    Http::fake([
+        WORKS_URL => Http::response(carberryBody(), 200),
+        BULK_URL => Http::response($body, $status),
+    ]);
+
+    $outcome = orcidSource()->fetchForResearcher(researcher([ORCID_HANDLE => CARBERRY]));
+
+    expect($outcome->candidates)->toHaveCount(6)
+        ->and($outcome->isComplete())->toBeFalse()
+        ->and($outcome->sourcesRun)->toBe([])
+        ->and($outcome->failures[0]->reason)->toBe($reason)
+        ->and(str_contains($outcome->failures[0]->detail, 'details for 6 work(s)'))->toBeTrue();
+})->with([
+    'outage' => [503, '', Reason::TransportFailed],
+    'not a bulk body' => [200, '{"group":[]}', Reason::UnexpectedResponse],
+]);

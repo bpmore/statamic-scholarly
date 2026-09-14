@@ -134,3 +134,35 @@ it('refuses to send at all without a contact email', function (): void {
 
     Http::assertNothingSent();
 });
+
+const EFETCH = 'eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi*';
+
+function efetchBody(): string
+{
+    return (string) file_get_contents(__DIR__.'/../__fixtures__/ncbi/efetch-carberry-j-two-articles.xml');
+}
+
+it('fetches details as XML in one identified request, and caches hits and reported misses', function (): void {
+    Http::fake([EFETCH => Http::response(efetchBody(), 200)]);
+    $fetcher = app(PublicationMetadataFetcher::class);
+
+    $details = $fetcher->detailsForPmids(['40788977', '99999999']);
+    $again = $fetcher->detailsForPmids(['40788977', '99999999']);
+
+    Http::assertSentCount(1);
+    Http::assertSent(static fn (Request $r): bool => $r['retmode'] === 'xml' && $r['id'] === '40788977,99999999' && $r['tool'] === 'statamic-scholarly');
+
+    expect($details['40788977']['authors'][1]['name'])->toBe('Carberry J')
+        ->and($details['99999999'])->toBeNull()
+        ->and($again)->toBe($details);
+});
+
+it('does NOT cache an efetch outage as a missing record', function (): void {
+    Http::fakeSequence(EFETCH)->push('', 503)->push(efetchBody(), 200);
+    $fetcher = app(PublicationMetadataFetcher::class);
+
+    expect(static fn () => $fetcher->detailsForPmids(['40788977']))->toThrow(NcbiUnavailable::class);
+    expect(Cache::get('scholarly_efetch_v1:40788977'))->toBeNull();
+
+    expect($fetcher->detailsForPmids(['40788977'])['40788977'])->not->toBeNull();
+});

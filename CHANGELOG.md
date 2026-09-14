@@ -12,6 +12,9 @@ have verified entries by hand and cannot re-verify them.
 
 ### Fixed
 
+- A refresh wrote every snapshot field, nulls included, so a PMID-only
+  source erased the DOI a DOI-only source had stored the night before. Only
+  values the run has are written now, and `source_apis` accumulates.
 - The Confirm, Reject and Defer actions and the review nav item named icons
   that do not exist in Statamic 6, so the control panel logged a warning for
   each and drew nothing.
@@ -25,6 +28,14 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- Candidates now carry author affiliations, author ORCID iDs and the
+  abstract: PubMed through `efetch` and ORCID through the bulk works
+  endpoint, one request per hundred, cached. If that second request cannot
+  answer, the candidates still arrive with what the listing had and the run
+  is partial. `PublicationMetadataFetcher::detailsForPmids()` is the seam.
+- Title matches are now found across runs, not only within one: a stored
+  `title_key` lets tonight's full paper find last month's abstract, and both
+  are linked in `possible_duplicates`. Nothing is merged.
 - `scholarly:notify`, which mails each researcher's `scholarly_verifier` (or
   the configured fallback address) one digest of candidates not yet
   mentioned, says per researcher when the last fetch was partial, and stamps

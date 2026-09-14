@@ -19,7 +19,9 @@
     ],
     "require": {
         "php": "^8.2",
+        "ext-dom": "*",
         "ext-json": "*",
+        "ext-libxml": "*",
         "statamic/cms": "^6.27"
     },
     "require-dev": {

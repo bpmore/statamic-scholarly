@@ -20,6 +20,7 @@ final readonly class WriteReport
      * @param  int  $keptApproved  Approved entries left as the verifier had them
      * @param  int  $suppressed  Rejected entries the source returned again
      * @param  int  $reopened  Approved entries sent back to review because this researcher was not on them
+     * @param  int  $titleMatched  Entries written this run that share a title with another entry and no identifier
      */
     public function __construct(
         public int $created = 0,
@@ -27,6 +28,7 @@ final readonly class WriteReport
         public int $keptApproved = 0,
         public int $suppressed = 0,
         public int $reopened = 0,
+        public int $titleMatched = 0,
     ) {}
 
     public function total(): int

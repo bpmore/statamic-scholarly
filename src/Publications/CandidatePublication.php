@@ -29,6 +29,27 @@ final readonly class CandidatePublication
     ) {}
 
     /**
+     * The same candidate with the fuller author list and abstract a second
+     * request supplied. Bibliographic fields and identifiers are untouched.
+     *
+     * @param  list<array{name: string, affiliation?: string|null, orcid?: string|null}>  $authors
+     */
+    public function withDetails(array $authors, ?string $abstract): self
+    {
+        return new self(
+            $this->sourceKey,
+            $this->title,
+            $this->doi,
+            $this->pmid,
+            $this->journal,
+            $this->publicationDate,
+            $abstract ?? $this->abstract,
+            $authors === [] ? $this->authors : $authors,
+            $this->externalUrls,
+        );
+    }
+
+    /**
      * The strongest identifier this candidate carries, or null when it has
      * none.
      *

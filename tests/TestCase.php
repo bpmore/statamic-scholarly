@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\Scholarly\Tests;
 
 use Bpmore\Scholarly\ServiceProvider;
+use Illuminate\Support\Facades\Http;
 use Statamic\Facades\Blueprint;
 use Statamic\Testing\AddonTestCase;
 use Statamic\Testing\Concerns\FakesRoles;
@@ -36,5 +37,10 @@ abstract class TestCase extends AddonTestCase
         // the Testbench skeleton and is still there for the next run, which
         // is how a test once passed against a blueprint from a week earlier.
         Blueprint::setDirectory($this->fakeStacheDirectory.'/blueprints');
+
+        // A request no test faked must not reach NCBI or ORCID. Without this
+        // an unfaked endpoint quietly goes to the network, and a test can
+        // pass or fail on the state of a remote service.
+        Http::preventStrayRequests();
     }
 }

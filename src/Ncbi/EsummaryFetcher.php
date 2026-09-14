@@ -36,6 +36,8 @@ final class EsummaryFetcher implements PublicationMetadataFetcher
      */
     private const CACHE_PREFIX = 'scholarly_esummary_v1:';
 
+    private const DETAILS_CACHE_PREFIX = 'scholarly_efetch_v1:';
+
     /** Shared by every NCBI caller on the site: the ceiling is per site, not per source. */
     public const LIMITER_KEY = 'scholarly:ncbi';
 
@@ -103,6 +105,71 @@ final class EsummaryFetcher implements PublicationMetadataFetcher
         }
 
         return $ordered;
+    }
+
+    /**
+     * @param  list<string>  $pmids
+     * @return array<int|string, array{abstract: string|null, authors: list<array{name: string, affiliation: string|null, orcid: string|null}>}|null>
+     */
+    public function detailsForPmids(array $pmids): array
+    {
+        $pmids = \array_values(\array_unique($pmids));
+        $out = [];
+        $toFetch = [];
+
+        foreach ($pmids as $pmid) {
+            $cached = Cache::get(self::DETAILS_CACHE_PREFIX.$pmid);
+
+            if ($cached === false) {
+                $out[$pmid] = null;
+            } elseif (\is_array($cached)) {
+                $out[$pmid] = $cached;
+            } else {
+                $toFetch[] = $pmid;
+            }
+        }
+
+        foreach (\array_chunk($toFetch, self::BATCH_SIZE) as $chunk) {
+            foreach ($this->fetchDetails($chunk) as $pmid => $details) {
+                Cache::put(self::DETAILS_CACHE_PREFIX.$pmid, $details ?? false, $this->cacheTtlSeconds);
+                $out[$pmid] = $details;
+            }
+        }
+
+        $ordered = [];
+
+        foreach ($pmids as $pmid) {
+            $ordered[$pmid] = $out[$pmid];
+        }
+
+        return $ordered;
+    }
+
+    /**
+     * @param  list<string>  $pmids
+     * @return array<string, array{abstract: string|null, authors: list<array{name: string, affiliation: string|null, orcid: string|null}>}|null>
+     *
+     * @throws NcbiUnavailable
+     * @throws UnexpectedNcbiResponse
+     */
+    private function fetchDetails(array $pmids): array
+    {
+        $this->limiter->waitForSlot();
+
+        try {
+            $response = Http::timeout($this->timeoutSeconds)->get(
+                EutilsRequest::BASE.'efetch.fcgi',
+                $this->request->query(['db' => 'pubmed', 'retmode' => 'xml', 'id' => \implode(',', $pmids)]),
+            );
+        } catch (ConnectionException $e) {
+            throw new NcbiUnavailable($e->getMessage(), previous: $e);
+        }
+
+        if (! $response->successful()) {
+            throw NcbiUnavailable::status($response->status(), 'efetch');
+        }
+
+        return EfetchArticles::parse($response->body(), $pmids);
     }
 
     /**

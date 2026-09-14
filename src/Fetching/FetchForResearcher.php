@@ -74,15 +74,7 @@ final class FetchForResearcher
         $merged = $this->deduplicator->merge($candidates);
         $written = $this->writer->write($researcher, $merged, $startedAt);
 
-        $titleMatches = 0;
-
-        foreach ($merged as $publication) {
-            if ($publication->titleMatches !== []) {
-                $titleMatches++;
-            }
-        }
-
-        $report = new RunReport((string) $researcher->id(), $outcomes, $skipped, $written, $titleMatches);
+        $report = new RunReport((string) $researcher->id(), $outcomes, $skipped, $written, $written->titleMatched);
 
         $this->stamp($researcher, $stamps, $report, $startedAt);
         $this->log($researcher, $report);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\Scholarly\Fetching;
 
 use Bpmore\Scholarly\Publications\MergedPublication;
+use Bpmore\Scholarly\Publications\PublicationKey;
 use Bpmore\Scholarly\Publications\PublicationsCollection;
 use Bpmore\Scholarly\Publications\Snapshot;
 use Illuminate\Support\Str;
@@ -89,9 +90,9 @@ final class PublicationWriter
             $entriesByIndex[$index] = $entry;
         }
 
-        $this->linkTitleMatches($merged, $entriesByIndex);
+        $titleMatched = $this->linkTitleMatches($entriesByIndex);
 
-        return new WriteReport($created, $refreshed, $kept, $suppressed, $reopened);
+        return new WriteReport($created, $refreshed, $kept, $suppressed, $reopened, $titleMatched);
     }
 
     /**
@@ -154,12 +155,39 @@ final class PublicationWriter
      */
     private function refresh(EntryContract $entry, EntryContract $researcher, array $values, string $fetchedAt): void
     {
+        // A source that did not report a field this time is not saying the
+        // field is wrong. Only values the run actually has replace stored
+        // ones; a DOI stored last month survives a PMID-only source tonight.
+        $values = \array_filter($values, static fn (mixed $v): bool => $v !== null && $v !== []);
+
         $entry->merge([
             ...$values,
+            'source_apis' => $this->unionSources($entry, $values['source_apis'] ?? []),
             'researchers' => $this->withResearcher($entry, $researcher),
             'fetched_at' => $fetchedAt,
         ]);
         $entry->saveQuietly();
+    }
+
+    /**
+     * Every source that has ever reported this paper. Corroboration is a
+     * signal in its own right, and a source that reported it last month and
+     * not tonight still reported it.
+     *
+     * @param  list<string>  $reported
+     * @return list<string>
+     */
+    private function unionSources(EntryContract $entry, array $reported): array
+    {
+        $sources = \array_values(\array_filter((array) $entry->get('source_apis', []), 'is_string'));
+
+        foreach ($reported as $key) {
+            if (! \in_array($key, $sources, true)) {
+                $sources[] = $key;
+            }
+        }
+
+        return $sources;
     }
 
     /**
@@ -214,60 +242,112 @@ final class PublicationWriter
      */
     private function addIdentifiers(EntryContract $entry, array $values, string $fetchedAt): void
     {
-        $sources = (array) $entry->get('source_apis', []);
-
-        foreach ($values['source_apis'] as $key) {
-            if (! \in_array($key, $sources, true)) {
-                $sources[] = $key;
-            }
-        }
-
         $entry->merge([
             'doi' => $entry->get('doi') ?? $values['doi'],
             'pmid' => $entry->get('pmid') ?? $values['pmid'],
-            'source_apis' => $sources,
+            'source_apis' => $this->unionSources($entry, $values['source_apis']),
             'fetched_at' => $fetchedAt,
+            // From the stored title, which the verifier may have corrected,
+            // not from the fetched one.
+            'title_key' => PublicationKey::normaliseTitle((string) $entry->get('title')),
         ]);
         $entry->saveQuietly();
     }
 
     /**
-     * Point each title-matched entry at the others, so the verifier sees the
-     * pair. Nothing is merged.
+     * Point each entry written this run at every other entry in the
+     * collection with the same title and no shared identifier, both ways,
+     * so the verifier sees the pair. Nothing is merged: an erratum and the
+     * paper it corrects share a title and are different works.
      *
-     * @param  list<MergedPublication>  $merged
+     * Across runs as well as within one, which is why the key is stored on
+     * the entry: last month's conference abstract and tonight's full paper
+     * are the case that matters, and they never arrive together.
+     *
      * @param  array<int, EntryContract>  $entriesByIndex
+     * @return int Entries written this run that gained at least one link
      */
-    private function linkTitleMatches(array $merged, array $entriesByIndex): void
+    private function linkTitleMatches(array $entriesByIndex): int
     {
-        foreach ($merged as $index => $publication) {
-            if ($publication->titleMatches === [] || ! isset($entriesByIndex[$index])) {
-                continue;
-            }
+        /** @var array<string, true> $written */
+        $written = [];
 
-            $ids = [];
-
-            foreach ($merged as $otherIndex => $other) {
-                if ($otherIndex === $index || ! isset($entriesByIndex[$otherIndex])) {
-                    continue;
-                }
-
-                foreach ($publication->titleMatches as [$a, $b]) {
-                    if (\in_array($b, $other->candidates, true) || \in_array($a, $other->candidates, true)) {
-                        $ids[] = (string) $entriesByIndex[$otherIndex]->id();
-
-                        break;
-                    }
-                }
-            }
-
-            if ($ids === []) {
-                continue;
-            }
-
-            $entry = $entriesByIndex[$index];
-            $entry->set('possible_duplicates', \array_values(\array_unique([...(array) $entry->get('possible_duplicates', []), ...$ids])));
-            $entry->saveQuietly();
+        foreach ($entriesByIndex as $entry) {
+            $written[(string) $entry->id()] = true;
         }
+
+        /** @var array<string, true> $touched */
+        $touched = [];
+
+        foreach ($entriesByIndex as $entry) {
+            $key = $entry->get('title_key');
+
+            if (! \is_string($key) || $key === '') {
+                continue;
+            }
+
+            $others = Entry::query()
+                ->where('collection', $this->collection->handle())
+                ->where('title_key', $key)
+                ->get()
+                ->reject(fn (EntryContract $other): bool => (string) $other->id() === (string) $entry->id())
+                ->reject(fn (EntryContract $other): bool => $this->shareAnIdentifier($entry, $other));
+
+            if ($others->isEmpty()) {
+                continue;
+            }
+
+            $ids = $others->map(fn (EntryContract $o): string => (string) $o->id())->all();
+
+            if ($this->addDuplicates($entry, $ids)) {
+                $touched[(string) $entry->id()] = true;
+            }
+
+            foreach ($others as $other) {
+                if ($this->addDuplicates($other, [(string) $entry->id()])) {
+                    $touched[(string) $other->id()] = true;
+                }
+            }
+        }
+
+        return \count(\array_intersect_key($touched, $written));
+    }
+
+    /**
+     * Two entries with the same DOI or PMID are the same paper and would have
+     * been matched by find(); if they exist apart, somebody separated them
+     * on purpose, and a title link would only nag.
+     */
+    private function shareAnIdentifier(EntryContract $a, EntryContract $b): bool
+    {
+        foreach (['doi', 'pmid'] as $field) {
+            $x = $a->get($field);
+            $y = $b->get($field);
+
+            if ($x !== null && $x !== '' && (string) $x === (string) $y) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<string>  $ids
+     * @return bool Whether anything new was added
+     */
+    private function addDuplicates(EntryContract $entry, array $ids): bool
+    {
+        $current = \array_map('strval', (array) $entry->get('possible_duplicates', []));
+        $merged = \array_values(\array_unique([...$current, ...$ids]));
+
+        if ($merged === $current) {
+            return false;
+        }
+
+        $entry->set('possible_duplicates', $merged);
+        $entry->saveQuietly();
+
+        return true;
     }
 }

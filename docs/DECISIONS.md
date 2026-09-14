@@ -119,7 +119,7 @@ misconfigured host, and the suite would have passed against it.
 shape borrowed from `bpmore/statamic-a11y-gate`. It works there only because
 nothing in that addon reads its own config during boot.
 
-## 2026-09-13: OrcidSource reads work summaries only
+## 2026-09-13: OrcidSource reads work summaries only (superseded 2026-09-14, see below)
 
 **Decision.** `OrcidSource` makes one request per researcher, to
 `/v3.0/{orcid}/works`, and each ORCID group becomes one candidate carrying
@@ -258,8 +258,15 @@ Adding an identifier never destroys an edit, so that much is still written.
   existing collection: if the handle exists, it is used as is.
 - Entries are slugged by their id. Titles collide (an erratum and its paper),
   and Statamic writes the file by slug, so a title slug is a silent overwrite.
-- Title matches within a run are linked both ways in `possible_duplicates`.
-  Matches against entries from earlier runs are not yet detected.
+- Title matches are linked both ways in `possible_duplicates`, within a run
+  and against entries from earlier runs, through a stored `title_key`. Two
+  entries that already share a DOI or PMID are never title-linked: apart,
+  they were separated on purpose. Entries written before the key existed
+  gain it on their next refresh; an approved one gains it from its stored,
+  possibly corrected, title.
+- A refresh writes only the values the run has. A PMID-only source tonight
+  does not erase the DOI a DOI-only source stored last night, and
+  `source_apis` is the union of every source that ever reported the paper.
 
 ## 2026-09-13: The review panel is the collection listing plus actions
 
@@ -364,3 +371,31 @@ every boundary, and a stored list of ids is matched in both forms.
 **One limit.** The Eloquent driver for Statamic 6 needs PHP 8.3, so the 8.2
 job runs the Stache suite only. A host on 8.2 cannot install the driver
 either, so nothing is promised there that is not tested.
+
+## 2026-09-14: Affiliations, author iDs and abstracts come from a second request, and its failure makes the run partial
+
+**Decision.** After the listing call, each source makes one request per
+hundred records for the full form: PubMed `efetch` (XML) for author
+affiliations, author ORCID iDs and the abstract; ORCID's bulk works endpoint
+for contributors and the description. If that second request cannot answer,
+the candidates still go out with what the listing had, a failure is recorded,
+and the source is not marked as run, so the last-fetched stamp does not
+advance and the next run asks for the same window again.
+
+**Why.** These are the fields disambiguation runs on: an affiliation matching
+the site's patterns, or an author's ORCID iD, is the evidence that a name
+match is this researcher. Leaving them empty was the earlier decision, taken
+before the partial-failure rule existed; the rule is the one above and it is
+the same rule every other failure follows. Enriched-or-partial is honest;
+enriched-or-silently-bare is not.
+
+**Rejected.** Replacing E-summary with E-fetch outright, one request instead
+of two. It would change the metadata seam's return shape from NCBI's summary
+row to a shape of this addon's, and a host with an E-summary client of its
+own could no longer bind it. Two requests, both cached for a week, cost
+little.
+
+**Also settled here.** PubMed records an author's ORCID iD as a bare id, a
+URL, or with a typo; only a well formed id is kept, because a wrong id on an
+author line is worse than none. Author names from E-fetch are rendered in
+E-summary's form ("Carberry J") so the two line up.
