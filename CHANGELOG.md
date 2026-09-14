@@ -28,6 +28,11 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- `scholarly:calibrate`: fits the confidence model to this site's confirm
+  and reject decisions, pooled across researchers and pulled toward the
+  shipped prior, reports cross-validated reliability, and refuses below
+  the configured number of decisions or when the fit is worse than the
+  prior. Candidates then say `calibrated`. `--dry-run` and `--forget`.
 - Confidence scoring, first part: every candidate carries
   `confidence_score`, a per-signal `confidence_breakdown`, and a
   `confidence_state` that says what the number is: `certain` (an ORCID
