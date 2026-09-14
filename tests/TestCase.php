@@ -7,6 +7,7 @@ namespace Bpmore\Scholarly\Tests;
 use Bpmore\Scholarly\ServiceProvider;
 use Statamic\Facades\Blueprint;
 use Statamic\Testing\AddonTestCase;
+use Statamic\Testing\Concerns\FakesRoles;
 use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
 
 /**
@@ -21,6 +22,7 @@ use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
  */
 abstract class TestCase extends AddonTestCase
 {
+    use FakesRoles;
     use PreventsSavingStacheItemsToDisk;
 
     protected string $addonServiceProvider = ServiceProvider::class;
