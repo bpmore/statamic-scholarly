@@ -34,16 +34,16 @@ final class EsummaryFetcher implements PublicationMetadataFetcher
      * Bumped when the cached shape changes, so an old entry cannot be read as
      * a new one.
      */
-    private const string CACHE_PREFIX = 'scholarly_esummary_v1:';
+    private const CACHE_PREFIX = 'scholarly_esummary_v1:';
 
     /** Shared by every NCBI caller on the site: the ceiling is per site, not per source. */
-    public const string LIMITER_KEY = 'scholarly:ncbi';
+    public const LIMITER_KEY = 'scholarly:ncbi';
 
     /**
      * PMIDs per esummary request. NCBI accepts far more by POST; this keeps a
      * GET URL short and one failed request small.
      */
-    public const int BATCH_SIZE = 100;
+    public const BATCH_SIZE = 100;
 
     private readonly SharedRateLimit $limiter;
 

@@ -19,7 +19,7 @@ namespace Bpmore\Scholarly\Researchers;
 final readonly class ResearcherFieldMap
 {
     /** The identifier kinds this addon knows how to use. */
-    public const array KINDS = [
+    public const KINDS = [
         'orcid',
         'pubmed_author',
         'scopus_author',

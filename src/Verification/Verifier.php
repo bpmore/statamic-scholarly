@@ -21,7 +21,7 @@ use Statamic\Contracts\Entries\Entry;
  */
 final class Verifier
 {
-    public const string PERMISSION = 'verify scholarly publications';
+    public const PERMISSION = 'verify scholarly publications';
 
     public function __construct(private readonly PublicationsCollection $collection) {}
 

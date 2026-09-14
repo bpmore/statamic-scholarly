@@ -18,9 +18,9 @@ use Statamic\Facades\Collection;
  */
 final class PublicationsCollection
 {
-    public const string BLUEPRINT = 'publication';
+    public const BLUEPRINT = 'publication';
 
-    public const array STATUSES = ['candidate', 'approved', 'rejected'];
+    public const STATUSES = ['candidate', 'approved', 'rejected'];
 
     public function __construct(
         private readonly string $handle,
