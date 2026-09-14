@@ -307,3 +307,33 @@ preview.
 **Also settled here.** Author names are joined as the source gave them
 ("Carberry J"). Reformatting a name is a guess about which part is the
 surname, and a wrong guess renders a real person's name wrong.
+
+## 2026-09-14: Notification reads state, not the run
+
+**Decision.** `scholarly:notify` mails each verifier about candidates with no
+`notified_at`, stamps them, and leaves deferred ones out. It is scheduled at
+the same frequency as the fetch and can be run by hand at any time.
+
+**Why.** One fetch is many queued jobs, and "the run is over" has no moment
+a notification can hang on without a batch table the host must migrate.
+State has no such problem: whatever is waiting and unmentioned gets
+mentioned once, whether the fetch was queued, synchronous, or three days
+ago. The cost is latency: a queued fetch's candidates are mailed on the next
+notify pass, a day later at most on the default schedule.
+
+**Rejected.** Mailing from the job after each researcher. One mail per
+researcher per night, and no digest possible. Also Laravel job batches with
+a completion callback: exact, but they need a database table on the host,
+and the addon must work on a flat-file site.
+
+**Also settled here.**
+
+- Open question 2. A researcher's `scholarly_verifier` gets the mail; with
+  none, the configured fallback address; with neither, nobody, and the run
+  says so in its output and the log and returns failure. The candidates stay
+  unstamped, so they are mentioned as soon as a verifier is set.
+- The last run's verdict is written to the researcher as
+  `scholarly_last_run`, every time. The mail says PARTIAL per researcher
+  from it, and the control panel can show it without reading a log.
+- The mail never calls a candidate a publication. The subject counts
+  "candidate publications"; the lines count "new candidates".

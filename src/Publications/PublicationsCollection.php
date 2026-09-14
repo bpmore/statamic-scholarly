@@ -106,6 +106,7 @@ final class PublicationsCollection
                             $field('deferred_at', ['type' => 'date', 'display' => 'Deferred at', 'time_enabled' => true, 'if' => ['verification_status' => 'candidate']]),
                             $field('possible_duplicates', ['type' => 'entries', 'display' => 'Possible duplicates', 'collections' => [$this->handle], 'instructions' => 'Same title, different identifiers. Not merged: an erratum and its paper share a title.']),
                             $field('fetched_at', ['type' => 'date', 'display' => 'Last fetched', 'time_enabled' => true, 'read_only' => true]),
+                            $field('notified_at', ['type' => 'date', 'display' => 'Verifier notified at', 'time_enabled' => true, 'read_only' => true]),
                         ]],
                     ],
                 ],

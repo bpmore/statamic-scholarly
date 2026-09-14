@@ -61,12 +61,28 @@ php please scholarly:install          # creates the publications collection
 php please scholarly:fetch --sync     # every researcher, now, printing each report
 php please scholarly:fetch            # every researcher, on the queue
 php please scholarly:fetch jane-doe --source=pubmed --since=2024-01-01
+php please scholarly:notify           # mail verifiers about what is waiting
 ```
 
 The schedule in config runs `scholarly:fetch` daily. A report line says
 `complete` or `PARTIAL`, and a partial run names the source that could not
 answer, because zero publications from a source that never ran is not an
 answer.
+
+## Being told
+
+Add a `scholarly_verifier` users field to your researcher blueprint and pick
+who reviews for each person. `scholarly:notify` (scheduled with the fetch,
+or run by hand) mails each verifier one digest of new candidates, says when
+the last fetch for a researcher was partial, and never mentions the same
+candidate twice. Deferred candidates are left out.
+
+```
+SCHOLARLY_VERIFIER_EMAIL=review@example.org   # who gets it when a researcher has no verifier
+```
+
+With no verifier and no fallback, the command says who could not be told and
+exits non-zero. It never stays quiet about that.
 
 ## Verifying
 

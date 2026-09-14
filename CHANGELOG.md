@@ -17,6 +17,13 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- `scholarly:notify`, which mails each researcher's `scholarly_verifier` (or
+  the configured fallback address) one digest of candidates not yet
+  mentioned, says per researcher when the last fetch was partial, and stamps
+  what it mentioned. A researcher nobody can be told about fails the run
+  loudly. Scheduled alongside the fetch.
+- `scholarly_last_run` on the researcher: the last fetch's verdict and
+  summary, written every time.
 - `{{ scholarly:publications }}` and `{{ scholarly:publications_count }}`,
   returning a researcher's approved publications only, with `researcher`,
   `sort`, `limit`, `paginate`, `as`, `year` and `journal`. The

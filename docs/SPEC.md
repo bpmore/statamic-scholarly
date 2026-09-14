@@ -148,7 +148,7 @@ A client that returns null for a timeout, and caches it, records a rate-limit bl
 
 Published as a fieldset the host imports, prefixed so they cannot collide with host fields:
 `scholarly_verifier` (users), `scholarly_auto_approve_threshold` (float, Phase 2),
-`scholarly_discard_floor` (float, Phase 2), and `scholarly_last_fetched`.
+`scholarly_discard_floor` (float, Phase 2), `scholarly_last_fetched` and `scholarly_last_run`.
 
 `scholarly_last_fetched` is a **per-source map**, not a scalar. A single scalar means a source added
 later re-fetches nothing, because the scalar is already current.
@@ -242,7 +242,15 @@ scholarly:fetch {researcher?} {--source=} {--since=} {--sync}
        ├─ score (Phase 2) or mark candidate (Phase 1)
        ├─ write entries: rejected untouched, approved keeps its snapshot,
        │                 candidate refreshed (section 10)
-       └─ scholarly_last_fetched[source] = run start, for sources that completed
+       ├─ scholarly_last_fetched[source] = run start, for sources that completed
+       └─ scholarly_last_run = {at, complete, summary}, every time
+
+scholarly:notify   (same schedule; reads state, so it is safe after a queued fetch)
+  └─ candidates with no notified_at and no deferred_at, grouped by verifier
+       ├─ scholarly_verifier on the researcher, else notifications.fallback,
+       │  else nobody: reported, logged, left unstamped
+       ├─ one digest per verifier (or one mail per researcher, digest: false)
+       └─ notified_at stamped on every candidate mentioned
 ```
 
 ```php
@@ -416,8 +424,8 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 ## 17. Open questions
 
 1. **Marketplace listing name availability**, section 12.
-2. **Default verifier** when a researcher has none: a configured fallback, the last editor, or no
-   notification.
+2. ~~Default verifier when a researcher has none.~~ Settled: `notifications.fallback`, and with
+   neither, the notify run reports and logs who could not be told (DECISIONS).
 3. **Multi-site publication semantics**: default-site-only with cross-site rendering, or localized.
 4. **Whether the `ProfilesRnsSource` idea is worth an optional source at all.** It was evaluated and
    rejected as a disambiguation engine because it returns binary membership rather than scores. As a
@@ -444,6 +452,7 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 | Version | Date | Summary |
 |---|---|---|
 | 1.0.0 | 2026-09-13 | Initial specification. |
+| 1.0.6 | 2026-09-14 | Notification pipeline in section 9; `scholarly_last_run` in 7.1; open question 2 settled. |
 | 1.0.5 | 2026-09-14 | Section 11: tag parameters as built; the authors modifier is `scholarly_authors`; `type` deferred. |
 | 1.0.4 | 2026-09-13 | Section 10: Defer stamps `deferred_at`. The review panel is the listing plus actions (DECISIONS). |
 | 1.0.3 | 2026-09-13 | One entry per paper with a `researchers` list, and the reopen rule for a new name on an approved entry; `possible_duplicates` and `fetched_at`; the pipeline diagram matches the job. |

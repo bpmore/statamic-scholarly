@@ -9,6 +9,7 @@ use Bpmore\Scholarly\Contracts\PublicationSource;
 use Bpmore\Scholarly\Fetching\SourceRegistry;
 use Bpmore\Scholarly\Ncbi\EutilsRequest;
 use Bpmore\Scholarly\Ncbi\PubmedSource;
+use Bpmore\Scholarly\Notifications\NotifyVerifiers;
 use Bpmore\Scholarly\Orcid\OrcidSource;
 use Bpmore\Scholarly\Publications\PublicationsCollection;
 use Bpmore\Scholarly\Researchers\ResearcherFieldMap;
@@ -36,6 +37,7 @@ class ServiceProvider extends AddonServiceProvider
     protected $commands = [
         Commands\Fetch::class,
         Commands\Install::class,
+        Commands\Notify::class,
     ];
 
     /**
@@ -110,6 +112,19 @@ class ServiceProvider extends AddonServiceProvider
             (string) config('statamic-scholarly.researchers.collection', 'people'),
         ));
 
+        $this->app->bind(NotifyVerifiers::class, function (): NotifyVerifiers {
+            /** @var array<string, mixed> $n */
+            $n = (array) config('statamic-scholarly.notifications', []);
+            $channels = \array_values(\array_filter((array) ($n['channels'] ?? ['mail']), 'is_string'));
+
+            return new NotifyVerifiers(
+                $this->app->make(PublicationsCollection::class),
+                (bool) ($n['digest'] ?? true),
+                \is_string($n['fallback'] ?? null) ? $n['fallback'] : null,
+                $channels === [] ? ['mail'] : $channels,
+            );
+        });
+
         // The shipped sources, in the order the snapshot prefers them: a
         // claim (ORCID) before an estimate (PubMed). A host adds a source by
         // tagging its own binding; it is consulted after these.
@@ -174,17 +189,19 @@ class ServiceProvider extends AddonServiceProvider
             return;
         }
 
-        $event = $schedule->command('scholarly:fetch');
-
         // Only a method the scheduler actually has. A typo such as "dailly"
         // would otherwise throw at boot, on every request, on a live site.
-        if (\method_exists($event, $frequency)) {
-            $event->{$frequency}();
-        } else {
+        if (! \method_exists(\Illuminate\Console\Scheduling\Event::class, $frequency)) {
             \Illuminate\Support\Facades\Log::warning('Scholarly does not recognise the configured schedule and is running daily instead.', [
                 'schedule' => $frequency,
             ]);
-            $event->daily();
+            $frequency = 'daily';
         }
+
+        // Notify runs at the same frequency and reads state, so candidates
+        // a queued fetch leaves behind are mailed on the next pass at the
+        // latest. A synchronous fetch is followed by scholarly:notify by hand.
+        $schedule->command('scholarly:fetch')->{$frequency}();
+        $schedule->command('scholarly:notify')->{$frequency}();
     }
 }
