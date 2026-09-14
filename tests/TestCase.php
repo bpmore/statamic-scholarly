@@ -6,6 +6,7 @@ namespace Bpmore\Scholarly\Tests;
 
 use Bpmore\Scholarly\ServiceProvider;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Statamic\Facades\Blueprint;
 use Statamic\Testing\AddonTestCase;
 use Statamic\Testing\Concerns\FakesRoles;
@@ -42,5 +43,9 @@ abstract class TestCase extends AddonTestCase
         // an unfaked endpoint quietly goes to the network, and a test can
         // pass or fail on the state of a remote service.
         Http::preventStrayRequests();
+
+        // The fitted model is a file on the local disk. A fake disk per test
+        // means a model one test saved cannot calibrate the next.
+        Storage::fake('local');
     }
 }

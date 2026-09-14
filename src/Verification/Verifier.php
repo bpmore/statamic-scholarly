@@ -43,6 +43,7 @@ final class Verifier
             'verified_by' => $by->id(),
             'verified_at' => \date(DATE_ATOM),
             'deferred_at' => null,
+            'discarded_at' => null,
         ]);
         $entry->save();
 
@@ -67,6 +68,7 @@ final class Verifier
             'verified_at' => \date(DATE_ATOM),
             'rejection_reason' => $reason === '' ? null : $reason,
             'deferred_at' => null,
+            'discarded_at' => null,
         ]);
         $entry->save();
 

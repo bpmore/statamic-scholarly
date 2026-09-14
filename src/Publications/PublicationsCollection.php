@@ -101,6 +101,7 @@ final class PublicationsCollection
                                 'rejected' => 'Rejected',
                             ], 'validate' => ['required']]),
                             $field('verified_by', ['type' => 'users', 'display' => 'Verified by', 'max_items' => 1, 'listable' => true]),
+                            $field('discarded_at', ['type' => 'date', 'display' => 'Set aside on score', 'time_enabled' => true, 'read_only' => true, 'listable' => true, 'instructions' => 'Below the floor on a calibrated score. Still a candidate; confirm it if the score is wrong.']),
                             $field('auto_approved', ['type' => 'toggle', 'display' => 'Approved on score', 'read_only' => true, 'listable' => true, 'instructions' => 'No person confirmed this. The score did, and "Why" says on what.']),
                             $field('verified_at', ['type' => 'date', 'display' => 'Verified at', 'time_enabled' => true]),
                             $field('rejection_reason', ['type' => 'text', 'display' => 'Rejection reason', 'if' => ['verification_status' => 'rejected']]),

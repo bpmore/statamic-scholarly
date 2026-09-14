@@ -88,8 +88,8 @@ final class FetchForResearcher
         // fingerprint every earlier candidate is measured against.
         $scoring = $this->scorer?->forResearcher(Entry::find($researcher->id()) ?? $researcher);
 
-        if ($scoring !== null && $scoring->autoApproved > 0) {
-            $report = new RunReport((string) $researcher->id(), $outcomes, $skipped, $written, $written->titleMatched, $scoring->autoApproved);
+        if ($scoring !== null && ($scoring->autoApproved > 0 || $scoring->setAside > 0)) {
+            $report = new RunReport((string) $researcher->id(), $outcomes, $skipped, $written, $written->titleMatched, $scoring->autoApproved, $scoring->setAside);
         }
 
         $this->log($researcher, $report);

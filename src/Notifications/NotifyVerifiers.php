@@ -20,7 +20,7 @@ use Statamic\Facades\User;
  * and stamps them once sent. That makes it safe to run after a queued fetch
  * finishes, on a schedule, or by hand, and it never sends the same
  * candidate twice. Deferred candidates are left out, which is what Defer
- * is for.
+ * is for, and so are candidates set aside below the discard floor.
  *
  * The recipient is the researcher's `scholarly_verifier`, then the
  * configured fallback address. A researcher with neither is NOT silently
@@ -46,6 +46,7 @@ final class NotifyVerifiers
             ->where('verification_status', 'candidate')
             ->whereNull('notified_at')
             ->whereNull('deferred_at')
+            ->whereNull('discarded_at')
             ->get();
 
         /** @var array<string, int> $waitingByResearcher */

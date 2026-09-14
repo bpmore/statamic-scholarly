@@ -247,6 +247,77 @@ function calibrationCases(): array
                 ->and(Entry::find($strong->id())->get('verification_status'))->toBe('approved', 'forgetting the model does not undo a decision it made; the entry still says it was made on score');
         },
 
+        'sets a weak candidate aside below the floor once calibrated, keeps it, and lifts it when it rises' => function (): void {
+            config()->set('statamic-scholarly.scoring.min_labels', 20);
+            config()->set('statamic-scholarly.scoring.min_labels_per_class', 8);
+            config()->set('statamic-scholarly.scoring.discard_floor', 0.30);
+            app(PublicationsCollection::class)->ensure();
+
+            $a = scoringResearcher();
+            decide($a, 'approved', 10, ['Berry C', 'Lechner I']);
+            decide($a, 'rejected', 10, ['Nobody X']);
+
+            $weak = Entry::make()->collection(SCORE_PUBS)->slug('weak')->data([
+                'title' => 'Weak', 'pmid' => '998', 'verification_status' => 'candidate',
+                'researchers' => [(string) $a->id()], 'authors' => [['name' => 'Carberry J'], ['name' => 'Stranger Z']],
+            ]);
+            $weak->save();
+
+            // On the prior: scored low, but never set aside.
+            app(ScoreCandidates::class)->forResearcher($a);
+
+            expect((float) Entry::find($weak->id())->get('confidence_score'))->toBeLessThan(0.3)
+                ->and(Entry::find($weak->id())->get('discarded_at'))->toBeNull();
+
+            $this->artisan('scholarly:calibrate')
+                ->expectsOutputToContain('1 candidate(s) set aside below the floor')
+                ->assertSuccessful();
+
+            $aside = Entry::find($weak->id());
+
+            expect($aside->get('verification_status'))->toBe('candidate', 'set aside is not a status')
+                ->and(strtotime((string) $aside->get('discarded_at')))->not->toBeFalse();
+
+            // Not mailed while set aside.
+            \Illuminate\Support\Facades\Notification::fake();
+            $verifierUser = User::make()->id('vv')->email('vv@example.edu');
+            $verifierUser->save();
+            $a->set(\Bpmore\Scholarly\Notifications\NotifyVerifiers::VERIFIER_FIELD, 'vv')->save();
+
+            expect(app(\Bpmore\Scholarly\Notifications\NotifyVerifiers::class)()->stamped)->toBe(0);
+
+            // Its co-author becomes known: confirming another paper with
+            // Stranger Z lifts it above the floor and it is asked about again.
+            $lift = Entry::make()->collection(SCORE_PUBS)->slug('lift')->data([
+                'title' => 'Lift', 'pmid' => '997', 'verification_status' => 'candidate',
+                'researchers' => [(string) $a->id()], 'authors' => [['name' => 'Carberry J'], ['name' => 'Stranger Z'], ['name' => 'Berry C']],
+            ]);
+            $lift->save();
+            app(Verifier::class)->confirm($lift, $verifierUser);
+
+            expect(Entry::find($weak->id())->get('discarded_at'))->toBeNull()
+                ->and((float) Entry::find($weak->id())->get('confidence_score'))->toBeGreaterThanOrEqual(0.3);
+
+            $this->artisan('scholarly:calibrate', ['--forget' => true])->assertSuccessful();
+        },
+
+        'confirming a set-aside candidate clears the mark' => function (): void {
+            $a = scoringResearcher();
+            app(PublicationsCollection::class)->ensure();
+            $entry = Entry::make()->collection(SCORE_PUBS)->slug('aside')->data([
+                'title' => 'Aside', 'pmid' => '5', 'verification_status' => 'candidate',
+                'researchers' => [(string) $a->id()], 'discarded_at' => '2026-01-01T00:00:00+00:00', 'authors' => [['name' => 'Carberry J']],
+            ]);
+            $entry->save();
+            $user = User::make()->id('v2')->email('v2@example.edu');
+            $user->save();
+
+            app(Verifier::class)->confirm($entry, $user);
+
+            expect(Entry::find($entry->id())->get('verification_status'))->toBe('approved')
+                ->and(Entry::find($entry->id())->get('discarded_at'))->toBeNull();
+        },
+
         'approves an ORCID-anchored candidate on its own, but never on the prior\'s number' => function (): void {
             $researcher = scoringResearcher();
             $pubmed = new FakeSource('pubmed', (new FetchOutcome)->withCandidates(

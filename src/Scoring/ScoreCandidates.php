@@ -25,7 +25,8 @@ use Statamic\Facades\Entry;
  *
  * A candidate at or above the auto-approve threshold is approved here, if
  * the site has that switched on and the number is one that means
- * something (see approves()).
+ * something (see approves()). One below the discard floor is set aside:
+ * kept, not mailed, filterable, never deleted (see setsAside()).
  */
 final class ScoreCandidates
 {
@@ -34,6 +35,7 @@ final class ScoreCandidates
     /**
      * @param  list<string>  $affiliationPatterns
      * @param  float|null  $autoApproveAt  Approve at or above this, or null to never approve on a score
+     * @param  float|null  $setAsideBelow  Set aside (keep, but stop asking about) below this, or null to never
      */
     public function __construct(
         private readonly PublicationsCollection $collection,
@@ -41,6 +43,7 @@ final class ScoreCandidates
         private readonly Model $model,
         private readonly array $affiliationPatterns = [],
         private readonly ?float $autoApproveAt = null,
+        private readonly ?float $setAsideBelow = null,
     ) {}
 
     public function forResearcher(EntryContract $researcher): ScoringReport
@@ -58,22 +61,22 @@ final class ScoreCandidates
 
         $scored = 0;
         $approved = 0;
+        $setAside = 0;
 
         foreach ($candidates as $entry) {
-            if ($this->score($entry, $fingerprint, $prevalence)) {
-                $approved++;
-            }
-
+            $outcome = $this->score($entry, $fingerprint, $prevalence);
+            $approved += $outcome === 'approved' ? 1 : 0;
+            $setAside += $outcome === 'set_aside' ? 1 : 0;
             $scored++;
         }
 
-        return new ScoringReport($scored, $approved);
+        return new ScoringReport($scored, $approved, $setAside);
     }
 
     /**
-     * @return bool Whether the candidate was approved on its score
+     * @return string `approved`, `set_aside` or `scored`
      */
-    private function score(EntryContract $entry, Fingerprint $fingerprint, ?int $prevalence): bool
+    private function score(EntryContract $entry, Fingerprint $fingerprint, ?int $prevalence): string
     {
         $sources = \array_values(\array_filter((array) $entry->get('source_apis', []), 'is_string'));
 
@@ -115,9 +118,9 @@ final class ScoreCandidates
             'scored_at' => \date(DATE_ATOM),
         ];
 
-        $approve = $this->approves($score, $state);
+        $outcome = 'scored';
 
-        if ($approve) {
+        if ($this->approves($score, $state)) {
             // Approved by the score, and the record says so: no verifier,
             // `auto_approved` set, the breakdown kept as the reason. A person
             // can still reject it, and that rejection is durable.
@@ -127,13 +130,42 @@ final class ScoreCandidates
                 'verified_at' => \date(DATE_ATOM),
                 'auto_approved' => true,
                 'deferred_at' => null,
+                'discarded_at' => null,
             ];
+            $outcome = 'approved';
+        } elseif ($this->setsAside($score, $state)) {
+            // Below the floor: still a candidate, still in the collection,
+            // still confirmable, but out of the digest and (by filter) the
+            // queue, so a common name does not bury a verifier. Never
+            // deleted: a discard that can be seen can be reversed.
+            if ($entry->get('discarded_at') === null) {
+                $values['discarded_at'] = \date(DATE_ATOM);
+            }
+
+            $outcome = 'set_aside';
+        } elseif ($entry->get('discarded_at') !== null) {
+            // Risen back above the floor, usually because the fingerprint
+            // grew. It is asked about again.
+            $values['discarded_at'] = null;
         }
 
         $entry->merge($values);
         $entry->saveQuietly();
 
-        return $approve;
+        return $outcome;
+    }
+
+    /**
+     * The floor, like the threshold, applies only to a number that means
+     * something. Certain never sets aside; the prior never does either.
+     */
+    private function setsAside(float $score, string $state): bool
+    {
+        if ($this->setAsideBelow === null) {
+            return false;
+        }
+
+        return $state === 'calibrated' && $score < $this->setAsideBelow;
     }
 
     /**

@@ -12,5 +12,6 @@ final readonly class ScoringReport
     public function __construct(
         public int $scored,
         public int $autoApproved,
+        public int $setAside = 0,
     ) {}
 }

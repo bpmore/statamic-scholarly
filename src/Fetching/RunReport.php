@@ -26,6 +26,7 @@ final readonly class RunReport
         public WriteReport $written,
         public int $titleMatches = 0,
         public int $autoApproved = 0,
+        public int $setAside = 0,
     ) {}
 
     /**
@@ -110,6 +111,10 @@ final readonly class RunReport
 
         if ($this->autoApproved > 0) {
             $parts[] = \sprintf('%d approved on score', $this->autoApproved);
+        }
+
+        if ($this->setAside > 0) {
+            $parts[] = \sprintf('%d set aside on score', $this->setAside);
         }
 
         foreach ($this->failures() as $failure) {
