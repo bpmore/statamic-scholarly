@@ -196,15 +196,28 @@ function calibrationCases(): array
             decide($b, 'approved', 4, ['Smith J']);
             decide($b, 'rejected', 4, ['Other Y']);
 
-            $candidate = Entry::make()->collection(SCORE_PUBS)->slug('open-candidate')->data([
-                'title' => 'Open candidate', 'pmid' => '999', 'verification_status' => 'candidate',
-                'researchers' => [(string) $a->id()], 'authors' => [['name' => 'Carberry J'], ['name' => 'Berry C']],
+            $strong = Entry::make()->collection(SCORE_PUBS)->slug('strong-candidate')->data([
+                'title' => 'Strong candidate', 'pmid' => '999', 'verification_status' => 'candidate',
+                'researchers' => [(string) $a->id()], 'authors' => [['name' => 'Carberry J'], ['name' => 'Berry C'], ['name' => 'Lechner I']],
             ]);
-            $candidate->save();
+            $strong->save();
+            $weak = Entry::make()->collection(SCORE_PUBS)->slug('weak-candidate')->data([
+                'title' => 'Weak candidate', 'pmid' => '998', 'verification_status' => 'candidate',
+                'researchers' => [(string) $a->id()], 'authors' => [['name' => 'Carberry J'], ['name' => 'Stranger Z']],
+            ]);
+            $weak->save();
+
+            // Before calibration the prior scores the strong one high, and
+            // nothing is approved on it: the prior's 0.9 is not nine in ten.
+            app(ScoreCandidates::class)->forResearcher($a);
+
+            expect((float) Entry::find($strong->id())->get('confidence_score'))->toBeGreaterThan(0.9)
+                ->and(Entry::find($strong->id())->get('verification_status'))->toBe('candidate');
 
             $this->artisan('scholarly:calibrate')
                 ->expectsOutputToContain('Decisions: 12 positive, 10 negative, from 2 researcher(s).')
                 ->expectsOutputToContain('Model saved.')
+                ->expectsOutputToContain('1 candidate(s) approved on score and now public.')
                 ->assertSuccessful();
 
             $model = app(\Bpmore\Scholarly\Scoring\ModelStore::class)->load();
@@ -214,15 +227,59 @@ function calibrationCases(): array
                 ->and($model->meta['positives'])->toBe(12)
                 ->and(app(\Bpmore\Scholarly\Scoring\Model::class)->state())->toBe('calibrated');
 
-            $rescored = Entry::find($candidate->id());
+            $approved = Entry::find($strong->id());
+            $still = Entry::find($weak->id());
 
-            expect($rescored->get('confidence_state'))->toBe('calibrated')
-                ->and($rescored->get('confidence_score'))->not->toBeNull();
+            expect($approved->get('verification_status'))->toBe('approved')
+                ->and($approved->get('auto_approved'))->toBeTrue()
+                ->and($approved->get('verified_by'))->toBeNull()
+                ->and(strtotime((string) $approved->get('verified_at')))->not->toBeFalse()
+                ->and($approved->get('confidence_state'))->toBe('calibrated')
+                ->and((float) $approved->get('confidence_score'))->toBeGreaterThanOrEqual(0.9)
+                ->and($still->get('verification_status'))->toBe('candidate')
+                ->and($still->get('confidence_state'))->toBe('calibrated')
+                ->and((float) $still->get('confidence_score'))->toBeLessThan(0.9);
 
             $this->artisan('scholarly:calibrate', ['--forget' => true])->assertSuccessful();
 
             expect(app(\Bpmore\Scholarly\Scoring\ModelStore::class)->load())->toBeNull()
-                ->and(Entry::find($candidate->id())->get('confidence_state'))->toBe('uncalibrated');
+                ->and(Entry::find($weak->id())->get('confidence_state'))->toBe('uncalibrated')
+                ->and(Entry::find($strong->id())->get('verification_status'))->toBe('approved', 'forgetting the model does not undo a decision it made; the entry still says it was made on score');
+        },
+
+        'approves an ORCID-anchored candidate on its own, but never on the prior\'s number' => function (): void {
+            $researcher = scoringResearcher();
+            $pubmed = new FakeSource('pubmed', (new FetchOutcome)->withCandidates(
+                new CandidatePublication('pubmed', title: 'Own id', pmid: '1', authors: [['name' => 'Carberry J', 'orcid' => SELF_ORCID]]),
+                new CandidatePublication('pubmed', title: 'Merely likely', pmid: '2', authors: [['name' => 'Carberry J', 'affiliation' => 'University of Glasgow'], ['name' => 'Berry C']]),
+            )->withSourceRun('pubmed'));
+            $orcid = new FakeSource('orcid', (new FetchOutcome)->withCandidates(
+                new CandidatePublication('orcid', title: 'Claimed', doi: '10.1000/claimed', authors: [['name' => 'Carberry J'], ['name' => 'Berry C']]),
+            )->withSourceRun('orcid'));
+
+            $report = scoredFetch($orcid, $pubmed)($researcher);
+            $entries = scoredEntries($researcher);
+
+            expect($entries['Own id']->get('verification_status'))->toBe('approved')
+                ->and($entries['Own id']->get('auto_approved'))->toBeTrue()
+                ->and($entries['Claimed']->get('verification_status'))->toBe('approved')
+                ->and($entries['Merely likely']->get('verification_status'))->toBe('candidate')
+                ->and($entries['Merely likely']->get('confidence_state'))->toBe('uncalibrated')
+                ->and($report->autoApproved)->toBe(2)
+                ->and(str_contains($report->summary(), '2 approved on score'))->toBeTrue();
+        },
+
+        'approves nothing when auto-approval is off, even an anchor' => function (): void {
+            config()->set('statamic-scholarly.scoring.auto_approve', false);
+            $researcher = scoringResearcher();
+            $pubmed = new FakeSource('pubmed', (new FetchOutcome)->withCandidates(
+                new CandidatePublication('pubmed', title: 'Own id', pmid: '1', authors: [['name' => 'Carberry J', 'orcid' => SELF_ORCID]]),
+            )->withSourceRun('pubmed'));
+
+            scoredFetch($pubmed)($researcher);
+
+            expect(scoredEntries($researcher)['Own id']->get('verification_status'))->toBe('candidate')
+                ->and(scoredEntries($researcher)['Own id']->get('confidence_state'))->toBe('certain');
         },
 
         'learns from a decided paper without letting it see its own co-authors' => function (): void {

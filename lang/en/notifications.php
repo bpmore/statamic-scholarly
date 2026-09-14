@@ -8,5 +8,5 @@ return [
     'researcher_line' => ':name: :count new candidate|:name: :count new candidates',
     'partial' => 'The last fetch for this researcher was PARTIAL, so this list may be incomplete: :summary',
     'action' => 'Review candidates',
-    'outro' => 'Confirm, reject or defer each one in the control panel. Nothing appears on a public profile until a person confirms it.',
+    'outro' => 'Confirm, reject or defer each one in the control panel. A candidate appears on a public profile only when a person confirms it, or when the score is certain enough to approve it on its own; approved-on-score entries say so and can be rejected.',
 ];

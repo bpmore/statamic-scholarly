@@ -121,11 +121,15 @@ class ServiceProvider extends AddonServiceProvider
         });
 
         $this->app->bind(Scoring\ScoreCandidates::class, function (): Scoring\ScoreCandidates {
+            $scoring = (array) config('statamic-scholarly.scoring', []);
+            $threshold = $scoring['auto_approve_threshold'] ?? null;
+
             return new Scoring\ScoreCandidates(
                 $this->app->make(PublicationsCollection::class),
                 $this->app->make(Scoring\FingerprintBuilder::class),
                 $this->app->make(Scoring\Model::class),
                 \array_values(\array_filter((array) config('statamic-scholarly.affiliation_patterns', []), 'is_string')),
+                ($scoring['auto_approve'] ?? false) && \is_numeric($threshold) ? (float) $threshold : null,
             );
         });
 
