@@ -289,3 +289,21 @@ keep honest about partial runs, and the listing is enough to start with.
   they exist, leave deferred candidates out of the current batch.
 - The verifier refuses an entry outside the owned collection rather than
   writing a status onto a page.
+
+## 2026-09-14: The tag has no parameter for anything but approved
+
+**Decision.** `{{ scholarly:publications }}` returns approved entries, and no
+parameter widens that. Filters narrow (year, journal, limit); none of them
+can reach a candidate or a rejected entry.
+
+**Why.** A candidate on a public page is the addon presenting an estimate as
+a claim, which is the one thing it must never do. A `status` parameter would
+be used, in good faith, by a template author who wanted "everything we
+found", and the page would look finished.
+
+**Rejected.** `status="any"` for preview templates. The control panel is the
+preview.
+
+**Also settled here.** Author names are joined as the source gave them
+("Carberry J"). Reformatting a name is a guess about which part is the
+surname, and a wrong guess renders a real person's name wrong.

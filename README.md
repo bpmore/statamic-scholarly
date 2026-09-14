@@ -103,13 +103,17 @@ fetch finds less than you expected.
 {{ scholarly:publications researcher="{id}" sort="publication_date:desc" limit="5" }}
     <article>
         <h3>{{ title }}</h3>
-        <p>{{ authors | scholarly:format_authors }}, <em>{{ journal }}</em>, {{ publication_date format="Y" }}</p>
+        <p>{{ authors | scholarly_authors:3 }}, <em>{{ journal }}</em>, {{ publication_date format="Y" }}</p>
     </article>
 {{ /scholarly:publications }}
 ```
 
-Only approved publications are ever returned, from the tag, the feed and the
-schema output alike.
+Only approved publications are ever returned, and there is no parameter to
+change that. `researcher` takes an id or a slug and defaults to the current
+entry; `year` takes `2020` or `2020:2024`; `sort`, `limit`, `paginate`, `as`
+and `journal` work as on the collection tag. `scholarly_authors:3` joins the
+first three author names and adds "et al." when there are more.
+`{{ scholarly:publications_count researcher="{id}" }}` gives the number.
 
 ## Adding your own source
 
