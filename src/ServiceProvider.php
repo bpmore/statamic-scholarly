@@ -51,7 +51,14 @@ class ServiceProvider extends AddonServiceProvider
      * @var array<int, class-string>
      */
     protected $tags = [
-        // Tags\ScholarlyTags::class,
+        Tags\Scholarly::class,
+    ];
+
+    /**
+     * @var array<int, class-string>
+     */
+    protected $modifiers = [
+        Modifiers\ScholarlyAuthors::class,
     ];
 
     public function register()

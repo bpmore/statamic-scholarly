@@ -17,6 +17,10 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- `{{ scholarly:publications }}` and `{{ scholarly:publications_count }}`,
+  returning a researcher's approved publications only, with `researcher`,
+  `sort`, `limit`, `paginate`, `as`, `year` and `journal`. The
+  `scholarly_authors` modifier joins author names with an "et al." cap.
 - Verification in the control panel: Confirm, Reject (with an optional
   reason) and Defer actions on the owned collection's listing and entries,
   gated by a `verify scholarly publications` permission, with a "Publication

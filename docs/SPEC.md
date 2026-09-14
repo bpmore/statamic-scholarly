@@ -303,12 +303,14 @@ operation.
 {{ scholarly:publications researcher="{id}" sort="publication_date:desc" limit="5" }}
   <article>
     <h3>{{ title }}</h3>
-    <p>{{ authors | scholarly:format_authors }}, <em>{{ journal }}</em>, {{ publication_date format="Y" }}</p>
+    <p>{{ authors | scholarly_authors:3 }}, <em>{{ journal }}</em>, {{ publication_date format="Y" }}</p>
   </article>
 {{ /scholarly:publications }}
 ```
 
-Parameters: `researcher`, `sort`, `limit`, `year` (scalar or `2020:2024`), `journal`, `type`.
+Parameters: `researcher` (id or slug; defaults to the current entry), `sort`, `limit`, `paginate`, `as`,
+`year` (scalar or `2020:2024`), `journal`. `{{ scholarly:publications_count }}` takes the same filters.
+A `type` parameter waits on a stored publication type, which no source records yet.
 
 **Only `approved` entries are ever returned**, from the tag, the JSON feed and the schema output
 alike. Candidate and rejected entries are unreachable from every frontend surface.
@@ -442,6 +444,7 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 | Version | Date | Summary |
 |---|---|---|
 | 1.0.0 | 2026-09-13 | Initial specification. |
+| 1.0.5 | 2026-09-14 | Section 11: tag parameters as built; the authors modifier is `scholarly_authors`; `type` deferred. |
 | 1.0.4 | 2026-09-13 | Section 10: Defer stamps `deferred_at`. The review panel is the listing plus actions (DECISIONS). |
 | 1.0.3 | 2026-09-13 | One entry per paper with a `researchers` list, and the reopen rule for a new name on an approved entry; `possible_duplicates` and `fetched_at`; the pipeline diagram matches the job. |
 | 1.0.2 | 2026-09-13 | Section 6.1: the metadata seam batches and throws; null means only an absent record. |
