@@ -360,3 +360,7 @@ know which.
 
 **Rule that follows.** An entry id is a string inside the addon, cast at
 every boundary, and a stored list of ids is matched in both forms.
+
+**One limit.** The Eloquent driver for Statamic 6 needs PHP 8.3, so the 8.2
+job runs the Stache suite only. A host on 8.2 cannot install the driver
+either, so nothing is promised there that is not tested.

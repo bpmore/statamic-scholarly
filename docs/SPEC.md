@@ -368,7 +368,8 @@ Testbench and Pest, in the package's own repository.
 1. **A host with entirely different collection and field handles.** The most valuable test in the
    suite, because it is what proves section 5.
 2. **Both entry drivers**, flat-file Stache and `statamic/eloquent-driver`, the latter with uuid and
-   with auto-increment entry ids. Built: `tests/Cases` run under all three.
+   with auto-increment entry ids. Built: `tests/Cases` run under all three, except on PHP 8.2, where
+   the driver itself cannot be installed.
 3. **De-duplication** across all three keys, including one paper arriving from three sources with
    differing metadata.
 4. **Rejection durability**: reject, re-run the fetch with the source still returning it, assert it
