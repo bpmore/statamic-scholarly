@@ -8,6 +8,7 @@ use Bpmore\Scholarly\ServiceProvider;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Statamic\Facades\Blueprint;
+use Statamic\Facades\Fieldset;
 use Statamic\Testing\AddonTestCase;
 use Statamic\Testing\Concerns\FakesRoles;
 use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
@@ -48,6 +49,7 @@ abstract class TestCase extends AddonTestCase
         // the Testbench skeleton and is still there for the next run, which
         // is how a test once passed against a blueprint from a week earlier.
         Blueprint::setDirectory($this->fakeStacheDirectory.'/blueprints');
+        Fieldset::setDirectory($this->fakeStacheDirectory.'/fieldsets');
 
         // A request no test faked must not reach NCBI or ORCID. Without this
         // an unfaked endpoint quietly goes to the network, and a test can

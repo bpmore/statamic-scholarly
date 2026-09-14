@@ -6,6 +6,7 @@ namespace Bpmore\Scholarly\Scoring;
 
 use Bpmore\Scholarly\Publications\CandidatePublication;
 use Bpmore\Scholarly\Publications\PublicationsCollection;
+use Bpmore\Scholarly\Researchers\ResearcherSummary;
 use Statamic\Contracts\Entries\Entry as EntryContract;
 use Statamic\Facades\Entry;
 
@@ -41,6 +42,7 @@ final class ScoreCandidates
         private readonly PublicationsCollection $collection,
         private readonly FingerprintBuilder $fingerprints,
         private readonly Model $model,
+        private readonly ResearcherSummary $summary,
         private readonly array $affiliationPatterns = [],
         private readonly ?float $autoApproveAt = null,
         private readonly ?float $setAsideBelow = null,
@@ -69,6 +71,11 @@ final class ScoreCandidates
             $setAside += $outcome === 'set_aside' ? 1 : 0;
             $scored++;
         }
+
+        // Scoring is the last thing that happens after every fetch, decision,
+        // import and calibration, so the researcher's own page is brought up
+        // to date here, once, from the final state.
+        $this->summary->refresh(Entry::find($researcher->id()) ?? $researcher);
 
         return new ScoringReport($scored, $approved, $setAside);
     }

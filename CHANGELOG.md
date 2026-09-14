@@ -28,6 +28,10 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- A `scholarly` fieldset, written by `scholarly:install` for the researcher
+  blueprint: the verifier, the ten newest approved publications, the number
+  of candidates waiting, and the last fetch's verdict. Written by the addon
+  after every scoring pass; nothing computed on render.
 - `{{ id | scholarly_citation:ama }}` (also `apa`, `vancouver`; add `:html`
   for an italic journal and escaped text), rendering the stored record and
   leaving out what it does not have.

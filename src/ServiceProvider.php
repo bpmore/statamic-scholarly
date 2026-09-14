@@ -138,6 +138,7 @@ class ServiceProvider extends AddonServiceProvider
                 $this->app->make(PublicationsCollection::class),
                 $this->app->make(Scoring\FingerprintBuilder::class),
                 $this->app->make(Scoring\Model::class),
+                $this->app->make(Researchers\ResearcherSummary::class),
                 \array_values(\array_filter((array) config('statamic-scholarly.affiliation_patterns', []), 'is_string')),
                 ($scoring['auto_approve'] ?? false) && \is_numeric($threshold) ? (float) $threshold : null,
                 \is_numeric($floor) && (float) $floor > 0 ? (float) $floor : null,

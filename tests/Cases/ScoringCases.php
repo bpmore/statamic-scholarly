@@ -392,3 +392,53 @@ function decide(\Statamic\Contracts\Entries\Entry $researcher, string $status, i
         $entry->save();
     }
 }
+
+/**
+ * The researcher's own page, across the same drivers.
+ *
+ * @return array<string, Closure(): void>
+ */
+function summaryCases(): array
+{
+    return [
+        'writes recent approved publications, the waiting count and the last fetch onto the researcher' => function (): void {
+            $researcher = scoringResearcher();
+            $pubmed = new FakeSource('pubmed', (new FetchOutcome)->withCandidates(
+                new CandidatePublication('pubmed', title: 'Own id, new', pmid: '1', publicationDate: '2025', authors: [['name' => 'Carberry J', 'orcid' => SELF_ORCID]]),
+                new CandidatePublication('pubmed', title: 'Own id, old', pmid: '2', publicationDate: '2019', authors: [['name' => 'Carberry J', 'orcid' => SELF_ORCID]]),
+                new CandidatePublication('pubmed', title: 'Namesake', pmid: '3', authors: [['name' => 'Carberry J'], ['name' => 'Stranger Z']]),
+                new CandidatePublication('pubmed', title: 'Another namesake', pmid: '4', authors: [['name' => 'Carberry J']]),
+            )->withSourceRun('pubmed'));
+
+            scoredFetch($pubmed)($researcher);
+
+            $researcher = Entry::find($researcher->id());
+            $entries = scoredEntries($researcher);
+
+            expect($researcher->get(\Bpmore\Scholarly\Researchers\ResearcherSummary::RECENT_FIELD))->toBe([(string) $entries['Own id, new']->id(), (string) $entries['Own id, old']->id()], 'approved, newest first')
+                ->and($researcher->get(\Bpmore\Scholarly\Researchers\ResearcherSummary::WAITING_FIELD))->toBe(2)
+                ->and($researcher->get(\Bpmore\Scholarly\Researchers\ResearcherSummary::STATUS_FIELD))->toStartWith(date('Y-m-d'))
+                ->and(str_contains((string) $researcher->get(\Bpmore\Scholarly\Researchers\ResearcherSummary::STATUS_FIELD), 'complete: 4 candidate(s) from pubmed'))->toBeTrue();
+
+            // A decision moves the numbers.
+            $user = User::make()->id('v3')->email('v3@example.edu');
+            $user->save();
+            app(Verifier::class)->reject($entries['Namesake'], $user);
+
+            expect(Entry::find($researcher->id())->get(\Bpmore\Scholarly\Researchers\ResearcherSummary::WAITING_FIELD))->toBe(1);
+        },
+
+        'installs a fieldset pointing at the configured publications collection, once' => function (): void {
+            $this->artisan('scholarly:install')->expectsOutputToContain('Fieldset "scholarly" written')->assertSuccessful();
+            $this->artisan('scholarly:install')->expectsOutputToContain('already exists and was left alone')->assertSuccessful();
+
+            $fieldset = \Statamic\Facades\Fieldset::find('scholarly');
+            $recent = collect($fieldset->contents()['fields'])->firstWhere('handle', \Bpmore\Scholarly\Researchers\ResearcherSummary::RECENT_FIELD);
+
+            expect($fieldset)->not->toBeNull()
+                ->and($recent['field']['collections'])->toBe([SCORE_PUBS])
+                ->and($recent['field']['read_only'])->toBeTrue()
+                ->and(collect($fieldset->contents()['fields'])->pluck('handle')->all())->toBe(['scholarly_verifier', 'scholarly_recent_publications', 'scholarly_candidates_waiting', 'scholarly_status']);
+        },
+    ];
+}

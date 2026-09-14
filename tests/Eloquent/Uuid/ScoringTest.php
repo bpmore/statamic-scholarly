@@ -6,6 +6,6 @@ require_once __DIR__.'/../../Cases/ScoringCases.php';
 
 beforeEach(fn () => scoringCasesSetup());
 
-foreach ([...scoringCases(), ...calibrationCases()] as $name => $body) {
+foreach ([...scoringCases(), ...calibrationCases(), ...summaryCases()] as $name => $body) {
     it($name, $body);
 }
