@@ -68,6 +68,16 @@ The schedule in config runs `scholarly:fetch` daily. A report line says
 answer, because zero publications from a source that never ran is not an
 answer.
 
+## Verifying
+
+Give a role the **Verify publications** permission. "Publication review" in
+the control panel opens the publications listing; filter it to
+`Status: Candidate` and use the Confirm, Reject and Defer actions on a row or
+a selection. To correct a record first, edit the entry, then Confirm it.
+
+Confirming records who did it and when. A rejected paper is never brought
+back by a fetch, though a person can confirm it later.
+
 ## Configuring which fields hold identifiers
 
 The addon does not assume your field handles. Point it at whatever you use:

@@ -23,7 +23,7 @@ use Statamic\Contracts\Entries\Entry as EntryContract;
  */
 final class FetchForResearcher
 {
-    public const string LAST_FETCHED_FIELD = 'scholarly_last_fetched';
+    public const LAST_FETCHED_FIELD = 'scholarly_last_fetched';
 
     public function __construct(
         private readonly SourceRegistry $sources,

@@ -291,7 +291,7 @@ control panel, because that explanation is what makes auto-routing trustworthy.
 | Reject | `rejected`, **permanently suppressed**, never resurfaces on re-fetch |
 | Edit and confirm | Correct the stored snapshot, then approve |
 | Suggest PMID or DOI | Manual entry for works no source returned |
-| Defer | Stays `candidate`, leaves the current notification batch |
+| Defer | Stays `candidate`, `deferred_at` set, leaves the current notification batch |
 
 **Rejection must be durable against re-fetch.** A source returning the same namesake paper nightly
 must not re-queue it. Failing this destroys verifier trust, and the failure looks exactly like normal
@@ -442,6 +442,7 @@ Web of Science; BibTeX and CSV import; digest, bell and webhook notifications; `
 | Version | Date | Summary |
 |---|---|---|
 | 1.0.0 | 2026-09-13 | Initial specification. |
+| 1.0.4 | 2026-09-13 | Section 10: Defer stamps `deferred_at`. The review panel is the listing plus actions (DECISIONS). |
 | 1.0.3 | 2026-09-13 | One entry per paper with a `researchers` list, and the reopen rule for a new name on an approved entry; `possible_duplicates` and `fetched_at`; the pipeline diagram matches the job. |
 | 1.0.2 | 2026-09-13 | Section 6.1: the metadata seam batches and throws; null means only an absent record. |
 | 1.0.1 | 2026-09-13 | Matched to the code: `fetchForResearcher()` returns `FetchOutcome` and takes a string `since`; ORCID config keys; PHP 8.3 in the matrix; Statamic version the dogfood site runs. |

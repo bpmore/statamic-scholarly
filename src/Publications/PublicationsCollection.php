@@ -18,9 +18,9 @@ use Statamic\Facades\Collection;
  */
 final class PublicationsCollection
 {
-    public const string BLUEPRINT = 'publication';
+    public const BLUEPRINT = 'publication';
 
-    public const array STATUSES = ['candidate', 'approved', 'rejected'];
+    public const STATUSES = ['candidate', 'approved', 'rejected'];
 
     public function __construct(
         private readonly string $handle,
@@ -69,14 +69,14 @@ final class PublicationsCollection
                     'display' => 'Main',
                     'sections' => [
                         ['display' => 'Bibliographic', 'fields' => [
-                            $field('title', ['type' => 'text', 'display' => 'Title', 'validate' => ['required']]),
-                            $field('journal', ['type' => 'text', 'display' => 'Journal']),
-                            $field('publication_date', ['type' => 'text', 'display' => 'Publication date', 'instructions' => 'As precise as the source had it: a year, a month, or a day.']),
+                            $field('title', ['type' => 'text', 'display' => 'Title', 'validate' => ['required'], 'listable' => true]),
+                            $field('journal', ['type' => 'text', 'display' => 'Journal', 'listable' => true]),
+                            $field('publication_date', ['type' => 'text', 'display' => 'Publication date', 'instructions' => 'As precise as the source had it: a year, a month, or a day.', 'listable' => true]),
                             $field('volume', ['type' => 'text', 'display' => 'Volume', 'width' => 33]),
                             $field('issue', ['type' => 'text', 'display' => 'Issue', 'width' => 33]),
                             $field('pages', ['type' => 'text', 'display' => 'Pages', 'width' => 33]),
-                            $field('abstract', ['type' => 'textarea', 'display' => 'Abstract']),
-                            $field('authors', ['type' => 'grid', 'display' => 'Authors', 'fields' => [
+                            $field('abstract', ['type' => 'textarea', 'display' => 'Abstract', 'listable' => false]),
+                            $field('authors', ['type' => 'grid', 'display' => 'Authors', 'listable' => false, 'fields' => [
                                 $field('name', ['type' => 'text', 'display' => 'Name']),
                                 $field('affiliation', ['type' => 'text', 'display' => 'Affiliation']),
                                 $field('orcid', ['type' => 'text', 'display' => 'ORCID iD']),
@@ -86,7 +86,7 @@ final class PublicationsCollection
                             $field('doi', ['type' => 'text', 'display' => 'DOI', 'width' => 50]),
                             $field('pmid', ['type' => 'text', 'display' => 'PMID', 'width' => 50]),
                             $field('external_urls', ['type' => 'list', 'display' => 'External URLs']),
-                            $field('source_apis', ['type' => 'list', 'display' => 'Reported by', 'instructions' => 'Which sources returned this paper. A name search is an estimate, not a claim.']),
+                            $field('source_apis', ['type' => 'list', 'display' => 'Reported by', 'instructions' => 'Which sources returned this paper. A name search is an estimate, not a claim.', 'listable' => true]),
                         ]],
                     ],
                 ],
@@ -94,14 +94,16 @@ final class PublicationsCollection
                     'display' => 'Verification',
                     'sections' => [
                         ['fields' => [
-                            $field('researchers', ['type' => 'entries', 'display' => 'Researchers', 'collections' => [$this->researcherCollection], 'validate' => ['required'], 'instructions' => 'Approval is for every name listed. Adding a name by hand is confirming the paper for them.']),
-                            $field('verification_status', ['type' => 'select', 'display' => 'Status', 'default' => 'candidate', 'options' => [
+                            $field('researchers', ['type' => 'entries', 'display' => 'Researchers', 'collections' => [$this->researcherCollection], 'validate' => ['required'], 'listable' => true, 'instructions' => 'Approval is for every name listed. Adding a name by hand is confirming the paper for them.']),
+                            $field('verification_status', ['type' => 'select', 'display' => 'Status', 'default' => 'candidate', 'listable' => true, 'options' => [
                                 'candidate' => 'Candidate (not yet confirmed)',
                                 'approved' => 'Approved',
                                 'rejected' => 'Rejected',
                             ], 'validate' => ['required']]),
-                            $field('verified_by', ['type' => 'users', 'display' => 'Verified by', 'max_items' => 1]),
+                            $field('verified_by', ['type' => 'users', 'display' => 'Verified by', 'max_items' => 1, 'listable' => true]),
                             $field('verified_at', ['type' => 'date', 'display' => 'Verified at', 'time_enabled' => true]),
+                            $field('rejection_reason', ['type' => 'text', 'display' => 'Rejection reason', 'if' => ['verification_status' => 'rejected']]),
+                            $field('deferred_at', ['type' => 'date', 'display' => 'Deferred at', 'time_enabled' => true, 'if' => ['verification_status' => 'candidate']]),
                             $field('possible_duplicates', ['type' => 'entries', 'display' => 'Possible duplicates', 'collections' => [$this->handle], 'instructions' => 'Same title, different identifiers. Not merged: an erratum and its paper share a title.']),
                             $field('fetched_at', ['type' => 'date', 'display' => 'Last fetched', 'time_enabled' => true, 'read_only' => true]),
                         ]],

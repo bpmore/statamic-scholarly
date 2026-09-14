@@ -17,6 +17,10 @@ have verified entries by hand and cannot re-verify them.
 
 ### Added
 
+- Verification in the control panel: Confirm, Reject (with an optional
+  reason) and Defer actions on the owned collection's listing and entries,
+  gated by a `verify scholarly publications` permission, with a "Publication
+  review" nav item. Every transition records who and when.
 - The fetch pipeline: `scholarly:fetch` queues one `FetchPublications` job per
   researcher (or runs inline with `--sync`), every source is consulted, the
   candidates are de-duplicated, and one entry per paper is written to the

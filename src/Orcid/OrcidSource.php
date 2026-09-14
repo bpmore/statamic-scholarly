@@ -34,16 +34,16 @@ use Throwable;
  */
 final class OrcidSource implements PublicationSource
 {
-    public const string DEFAULT_BASE_URL = 'https://pub.orcid.org/v3.0/';
+    public const DEFAULT_BASE_URL = 'https://pub.orcid.org/v3.0/';
 
-    private const string LIMITER_KEY = 'scholarly:orcid';
+    private const LIMITER_KEY = 'scholarly:orcid';
 
     /**
      * Well under ORCID's published ceiling for the public API, so that other
      * ORCID clients on the same site, and the burst two queue workers make
      * together, do not tip it over.
      */
-    private const int REQUESTS_PER_SECOND = 8;
+    private const REQUESTS_PER_SECOND = 8;
 
     private readonly SharedRateLimit $limiter;
 

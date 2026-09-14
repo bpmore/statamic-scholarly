@@ -26,10 +26,10 @@ use Illuminate\Support\Facades\RateLimiter;
 final readonly class SharedRateLimit
 {
     /** How long to sleep between checks of the shared limiter. */
-    private const int POLL_MICROSECONDS = 50_000;
+    private const POLL_MICROSECONDS = 50_000;
 
     /** Upper bound on waiting, so a stuck window cannot hang a worker. */
-    private const int MAX_WAIT_MICROSECONDS = 5_000_000;
+    private const MAX_WAIT_MICROSECONDS = 5_000_000;
 
     /**
      * @param  string  $key  One key per remote. Two sources sharing a remote share a key.

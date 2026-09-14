@@ -12,7 +12,10 @@ use Bpmore\Scholarly\Ncbi\PubmedSource;
 use Bpmore\Scholarly\Orcid\OrcidSource;
 use Bpmore\Scholarly\Publications\PublicationsCollection;
 use Bpmore\Scholarly\Researchers\ResearcherFieldMap;
+use Bpmore\Scholarly\Verification\Verifier;
 use Illuminate\Console\Scheduling\Schedule;
+use Statamic\Facades\CP\Nav;
+use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
 
 /**
@@ -33,6 +36,15 @@ class ServiceProvider extends AddonServiceProvider
     protected $commands = [
         Commands\Fetch::class,
         Commands\Install::class,
+    ];
+
+    /**
+     * @var array<int, class-string>
+     */
+    protected $actions = [
+        Actions\Confirm::class,
+        Actions\Reject::class,
+        Actions\Defer::class,
     ];
 
     /**
@@ -117,6 +129,29 @@ class ServiceProvider extends AddonServiceProvider
                 $baseUrl,
                 (int) config('statamic-scholarly.ncbi.request_timeout_seconds', 10),
             );
+        });
+    }
+
+    public function bootAddon(): void
+    {
+        Permission::extend(function (): void {
+            Permission::group('scholarly', 'Scholarly', function (): void {
+                Permission::register(Verifier::PERMISSION)
+                    ->label(__('Verify publications'))
+                    ->description(__('Confirm, reject and defer candidate publications.'));
+            });
+        });
+
+        // The review queue is the owned collection's own listing: Statamic's
+        // filters narrow it to candidates and the actions above act on rows.
+        // Nothing here is a widget of its own.
+        Nav::extend(function ($nav): void {
+            $handle = (string) config('statamic-scholarly.publications.collection', 'publications');
+
+            $nav->content(__('Publication review'))
+                ->route('collections.show', $handle)
+                ->icon('checkmark-circle')
+                ->can(Verifier::PERMISSION);
         });
     }
 

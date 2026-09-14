@@ -21,7 +21,7 @@ use Bpmore\Scholarly\Publications\CandidatePublication;
  */
 final class OrcidWorks
 {
-    public const string SOURCE_KEY = 'orcid';
+    public const SOURCE_KEY = 'orcid';
 
     /**
      * @param  array<string, mixed>  $decoded  The JSON-decoded works response

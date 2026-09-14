@@ -260,3 +260,32 @@ Adding an identifier never destroys an edit, so that much is still written.
   and Statamic writes the file by slug, so a title slug is a silent overwrite.
 - Title matches within a run are linked both ways in `possible_duplicates`.
   Matches against entries from earlier runs are not yet detected.
+
+## 2026-09-13: The review panel is the collection listing plus actions
+
+**Decision.** Verification happens in the owned collection's own listing and
+entry pages. Confirm, Reject and Defer are Statamic actions; a permission
+(`verify scholarly publications`) gates them; a nav item, "Publication
+review", opens the listing. The status, researchers, sources and verifier are
+listable columns, and Statamic's field filter narrows the list to candidates.
+
+**Why.** Statamic already has a listing with filters, bulk selection, row
+actions with confirmation dialogs and optional fields, and an entry editor.
+"Edit and confirm" is the entry editor followed by the Confirm action. A
+page of its own would reproduce all of that in Vue for the sake of a
+pre-applied filter, and the repository's rule is that control-panel UI comes
+from Statamic's own components.
+
+**Rejected.** A custom CP page listing candidates. Also a dashboard widget
+showing the queue length: it is a fine idea, but it is a second surface to
+keep honest about partial runs, and the listing is enough to start with.
+
+**Also settled here.**
+
+- Every transition records `verified_by` and `verified_at`. Reject takes an
+  optional reason. Confirm is offered on a rejected entry too: a person may
+  reverse another person's decision, and the record shows who did.
+- Defer stamps `deferred_at` and changes nothing else. Notifications, when
+  they exist, leave deferred candidates out of the current batch.
+- The verifier refuses an entry outside the owned collection rather than
+  writing a status onto a page.

@@ -21,13 +21,13 @@ namespace Bpmore\Scholarly\Ncbi;
  */
 final readonly class EutilsRequest
 {
-    public const string BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/';
+    public const BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/';
 
     /** Requests per second NCBI allows an unidentified-by-key client. */
-    public const int RATE_WITHOUT_KEY = 3;
+    public const RATE_WITHOUT_KEY = 3;
 
     /** Requests per second NCBI allows with an API key. */
-    public const int RATE_WITH_KEY = 10;
+    public const RATE_WITH_KEY = 10;
 
     public function __construct(
         private string $tool,

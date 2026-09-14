@@ -22,7 +22,7 @@ use DateTimeImmutable;
 final readonly class PubmedSearchQuery
 {
     /** NCBI's ceiling for `retmax` on esearch is ten thousand; this stays well under it. */
-    public const int PAGE_SIZE = 500;
+    public const PAGE_SIZE = 500;
 
     public function __construct(
         private string $authorString,
