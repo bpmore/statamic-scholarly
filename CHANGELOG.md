@@ -10,6 +10,10 @@ have verified entries by hand and cannot re-verify them.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.2.0] - 2026-09-15
+
 ### Added
 
 - **A page under Tools.** Scholarly now has a utility in the control panel:
