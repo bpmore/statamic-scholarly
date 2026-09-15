@@ -10,7 +10,16 @@ have verified entries by hand and cannot re-verify them.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **A page under Tools.** Scholarly now has a utility in the control panel:
+  the review queue (waiting, deferred, set aside, approved, rejected), every
+  researcher with their identifiers, last fetch and verifier, which sources
+  will run and why one will not, NCBI identification, scoring calibration,
+  notifications and the schedule. Read-only, and nothing on it fetches.
+  Access is the permission "Access Scholarly utility". Settings still change
+  in `config/statamic-scholarly.php` and `.env`; the page reads them and says
+  where they live.
 
 ## [0.1.0] - 2026-09-14
 
