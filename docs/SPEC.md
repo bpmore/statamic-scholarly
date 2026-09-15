@@ -312,6 +312,15 @@ which sets a calibrated candidate aside (kept, unmailed, filterable) rather than
 must not re-queue it. Failing this destroys verifier trust, and the failure looks exactly like normal
 operation.
 
+### 10.1 The page under Tools
+
+A utility, "Scholarly", under Tools in the control panel, gated by the permission `access
+scholarly utility`. Read-only. It shows the review queue counts, every researcher in the
+configured collection with their identifiers, last fetch and verifier, which sources will run
+and why one will not, NCBI identification (email shown, key shown as set or not), scoring
+calibration, notifications and the schedule. Nothing on it fetches. Settings are not edited
+here; the page names the config key next to each value. Decision log, 2026-09-14.
+
 ## 11. Frontend output
 
 ```antlers

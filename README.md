@@ -241,6 +241,25 @@ The body is JSON; `X-Scholarly-Signature` is `sha256=` followed by the
 HMAC-SHA256 of the exact body under the secret. Check it before trusting a
 post.
 
+## Seeing where things stand
+
+Under Tools in the control panel, a page called Scholarly shows what the
+addon knows about this site: candidates waiting, deferred and set aside;
+every researcher with the identifiers they carry, what their last fetch
+said and who is told when candidates wait on them; which sources will run
+and why one will not; whether NCBI has its contact email; whether scoring
+is calibrated; and how notifications and the schedule are set.
+
+It reads. Nothing on it fetches, and nothing on it changes a setting: the
+config file and `.env` are where that happens, and the page says so. A
+researcher with no identifier is shown as that, not as one with no
+publications; a partial run is shown as partial; a source that is off is
+shown as off. The page keeps the same distinctions the run reports do.
+
+Access is its own permission, **Access Scholarly utility**, under Utilities
+in a role's permissions. Super users have it. Credentials are never shown,
+only whether they are set.
+
 ## Upgrading
 
 A published config does not gain new keys on its own. After an upgrade,

@@ -3,6 +3,58 @@
 Why things are the way they are, and what was turned down. Read before choosing
 an approach; add an entry when a change settles a question.
 
+## 2026-09-14: A page under Tools that reads, and a config file that is still where settings change
+
+**Decision.** Scholarly has a utility in the control panel, under Tools,
+next to the other addons' pages. It shows the review queue, every researcher
+with identifiers, last fetch and verifier, the sources and why one will not
+run, NCBI identification, scoring calibration, notifications and the
+schedule. It is read-only. Settings stay in `config/statamic-scholarly.php`
+and `.env`, and the page names the key next to each thing it shows.
+
+**Why.** The earlier entry on the review panel turned down a dashboard widget
+for the queue length as "a second surface to keep honest about partial
+runs". The objection stands and this page answers it rather than ignoring
+it: every count on it is drawn from what a run wrote, and the page keeps the
+same distinctions the run reports do. A researcher with no identifier is
+one row and "no identifier"; a partial run is "partial" in red; a source
+that is off says "off" and does not look; a source the config names with no
+code behind it says so, because `scopus` and `web_of_science` ship in the
+config file as placeholders and a site that turned one on would otherwise
+wait for a fetch that never comes.
+
+What the page adds over the nav count and the run reports is the joins. The
+run report is per researcher and per run; the nav count is one number; the
+notify command says who could not be told when it runs. The page puts them
+side by side, which is where "four waiting on a researcher with no verifier
+and no fallback" becomes visible before the next notify run finds it.
+
+**Nothing fetches on a render path.** The repository rule, kept. Every
+number is entries, config, or the fitted model on disk. The utility test
+runs under `Http::preventStrayRequests()`, so a render that reached ORCID or
+PubMed would fail the suite.
+
+**Rejected.**
+
+- *An editable settings screen, saving to a file.* Every other addon in this
+  author's set keeps settings in a config file that is committed with the
+  site, and a screen that wrote elsewhere would make two sources of truth
+  for the same key. The page says where each setting lives instead. This
+  can be revisited; the page does not get in its way.
+- *A fetch button.* A button that started a run from the page would put a
+  network action behind a click on a page that is otherwise read-only, and
+  the run belongs to the scheduler and the command, where its report is
+  printed in full.
+- *Hiding the researchers who are not researchers.* The configured
+  collection is what the addon fetches for, and a site that points it at a
+  mixed staff directory sees every member listed with "no identifier". That
+  is the truth about what the addon will do with that collection, and the
+  fix is the config key the page names.
+
+**Also settled.** Credentials are never printed, only whether they are set.
+The NCBI email is printed, because NCBI asks that it identify the site and
+it is not a secret.
+
 ## 2026-09-13: Bibliographic fields are stored, not computed
 
 **Decision.** A publication entry stores its own title, journal, dates and

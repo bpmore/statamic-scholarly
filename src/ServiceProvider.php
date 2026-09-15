@@ -13,11 +13,13 @@ use Bpmore\Scholarly\Notifications\NotifyVerifiers;
 use Bpmore\Scholarly\Orcid\OrcidSource;
 use Bpmore\Scholarly\Publications\PublicationsCollection;
 use Bpmore\Scholarly\Researchers\ResearcherFieldMap;
+use Bpmore\Scholarly\Utility\StatusReport;
 use Bpmore\Scholarly\Verification\Verifier;
 use Bpmore\Scholarly\Verification\WaitingCount;
 use Illuminate\Console\Scheduling\Schedule;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
+use Statamic\Facades\Utility;
 use Statamic\Providers\AddonServiceProvider;
 
 /**
@@ -192,6 +194,15 @@ class ServiceProvider extends AddonServiceProvider
             return new SourceRegistry(...$tagged);
         });
 
+        $this->app->bind(StatusReport::class, fn (): StatusReport => new StatusReport(
+            $this->app->make(SourceRegistry::class),
+            $this->app->make(ResearcherFieldMap::class),
+            $this->app->make(PublicationsCollection::class),
+            $this->app->make(WaitingCount::class),
+            $this->app->make(Scoring\ModelStore::class),
+            (array) config('statamic-scholarly', []),
+        ));
+
         $this->app->bind(OrcidSource::class, function (): OrcidSource {
             /** @var array<string, mixed> $orcid */
             $orcid = (array) config('statamic-scholarly.sources.orcid', []);
@@ -223,6 +234,17 @@ class ServiceProvider extends AddonServiceProvider
                 \is_string($n['webhook_secret'] ?? null) ? $n['webhook_secret'] : null,
             );
         });
+
+        // The page under Tools: what the last run said and whether the next
+        // one is set up to answer. It reads; the config file is where
+        // settings change. Statamic registers "access scholarly utility"
+        // for it, under Utilities in a role's permissions.
+        Utility::extend(fn () => Utility::register('scholarly')
+            ->title('Scholarly')
+            ->navTitle('Scholarly')
+            ->icon('media-news-paper')
+            ->description('Where publications come from, who reviews them, and whether the last fetch answered.')
+            ->view('scholarly::utility', fn (): array => ['report' => $this->app->make(StatusReport::class)()]));
 
         Permission::extend(function (): void {
             Permission::group('scholarly', 'Scholarly', function (): void {
