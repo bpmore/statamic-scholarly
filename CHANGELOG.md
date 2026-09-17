@@ -10,6 +10,12 @@ have verified entries by hand and cannot re-verify them.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.3.0] - 2026-09-17
+
+Marketplace readiness, reviewed against Statamic's submission guidelines.
+
 ### Added
 
 - `scholarly:install` adds any field a newer version ships to an existing
