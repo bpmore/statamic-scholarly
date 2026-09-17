@@ -106,3 +106,23 @@ it('orders the prior the way the spec expects: co-authors above affiliation, com
         expect($score)->toBeGreaterThanOrEqual(0.0)->toBeLessThanOrEqual(1.0);
     }
 });
+
+it('explains a score in sentences a person can read in a sidebar', function (): void {
+    $f = carberryFingerprint();
+    $model = LogisticModel::prior();
+    $s = Signals::compute(scoredCandidate([['name' => 'Carberry J', 'affiliation' => 'British Heart Foundation Glasgow'], ['name' => 'Berry C'], ['name' => 'Nobody X']], 'Circulation'), $f, [], 63);
+
+    $why = \Bpmore\Scholarly\Scoring\ScoreCandidates::why($s, $model->contributions($s), $model->state(), $model->score($s), $f->certainPapers);
+
+    expect($why)->toContain('Name match: full (+2.00)')
+        ->and($why)->toContain('Affiliation match: yes (+2.00)')
+        ->and($why)->toContain('Co-authors shared with certain papers: 1 of the others, 50% overlap (+2.00) (+0.50)')
+        ->and($why)->toContain('Journal seen on a certain paper: yes (+0.80)')
+        ->and($why)->toContain('Name prevalence in PubMed: 63 records (-0.56)')
+        ->and($why)->toContain('the shipped prior; an ordering, not a probability')
+        ->and(str_contains($why, 'signal_'))->toBeFalse('no machine keys');
+
+    $anchored = Signals::compute(scoredCandidate([['name' => 'Carberry J', 'orcid' => '0000-0002-4184-0714']]), $f, [], null);
+
+    expect(\Bpmore\Scholarly\Scoring\ScoreCandidates::why($anchored, [], 'certain', 1.0, 2))->toStartWith('Certain:');
+});

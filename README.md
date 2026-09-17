@@ -29,6 +29,14 @@ sharing a name actually wrote the paper.
 - Imports BibTeX and CSV, renders through an Antlers tag with citation
   styles, serves a JSON feed, and mails (or webhooks) verifiers a digest.
 
+## What it looks like
+
+| | |
+|---|---|
+| ![The publications listing, with status, confidence and the waiting count in the nav](docs/screenshots/01-publication-review-listing.png) | ![Confirm, Reject and Defer on a row](docs/screenshots/02-row-actions.png) |
+| ![An entry's Verification sidebar with the score, its state, and why](docs/screenshots/03-entry-verification.png) | ![A researcher's own page: verifier, recent approved publications, candidates waiting](docs/screenshots/04-researcher-page.png) |
+| ![The Tools page: the queue, every researcher, sources, and whether the next run can answer](docs/screenshots/05-tools-page.png) | |
+
 ## What it will not do
 
 - **It will not tell you a publication is definitely someone's work.** Outside
