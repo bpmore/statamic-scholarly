@@ -143,6 +143,20 @@ return [
         'min_labels_per_class' => 10,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Feed
+    |--------------------------------------------------------------------------
+    |
+    | A public JSON feed of each researcher's APPROVED publications at
+    | /!/statamic-scholarly/feed/{researcher}. The same data the tag renders,
+    | nothing more. Off, the route answers 404.
+    |
+    */
+    'feed' => [
+        'enabled' => true,
+    ],
+
     'schedule' => 'daily',
 
     /*

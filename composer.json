@@ -11,6 +11,11 @@
             "homepage": "https://hada.farm"
         }
     ],
+    "support": {
+        "issues": "https://github.com/bpmore/statamic-scholarly/issues",
+        "source": "https://github.com/bpmore/statamic-scholarly",
+        "docs": "https://github.com/bpmore/statamic-scholarly#readme"
+    },
     "funding": [
         {
             "type": "other",
@@ -45,7 +50,9 @@
     "extra": {
         "statamic": {
             "name": "Scholarly",
-            "slug": "statamic-scholarly"
+            "slug": "statamic-scholarly",
+            "description": "Verified publication lists for researcher profiles: fetched from ORCID and PubMed, de-duplicated, scored, and confirmed by a person before they go public.",
+            "url": "https://github.com/bpmore/statamic-scholarly"
         },
         "laravel": {
             "providers": [

@@ -6,6 +6,6 @@ require_once __DIR__.'/../Cases/PipelineCases.php';
 
 beforeEach(fn () => pipelineCasesSetup());
 
-foreach (pipelineCases() as $name => $body) {
+foreach ([...pipelineCases(), ...upgradeCases()] as $name => $body) {
     it($name, $body);
 }

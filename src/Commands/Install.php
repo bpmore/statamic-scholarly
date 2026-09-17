@@ -28,9 +28,13 @@ final class Install extends Command
 
     public function handle(PublicationsCollection $collection, ResearcherSummary $summary): int
     {
-        $collection->ensure();
+        $added = $collection->ensure();
 
         $this->info(\sprintf('Collection "%s" and its "%s" blueprint are in place.', $collection->handle(), PublicationsCollection::BLUEPRINT));
+
+        if ($added !== []) {
+            $this->info('Added fields this version ships that the blueprint lacked: '.\implode(', ', $added).'.');
+        }
 
         if (Fieldset::find(ResearcherSummary::FIELDSET) === null) {
             Fieldset::make(ResearcherSummary::FIELDSET)->setContents($summary->fieldsetContents())->save();

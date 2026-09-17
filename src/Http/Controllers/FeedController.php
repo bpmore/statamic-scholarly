@@ -23,6 +23,13 @@ final class FeedController
 
     public function __invoke(Request $request, string $researcher): JsonResponse
     {
+        // A published config from before this key existed has no `feed`
+        // block; the feed stays on for it, as it was. Only an explicit false
+        // turns it off.
+        if (config('statamic-scholarly.feed.enabled', true) === false) {
+            return new JsonResponse(['error' => 'The publication feed is not enabled on this site.'], 404);
+        }
+
         $id = $this->approved->resolveResearcherId($researcher);
 
         if ($id === null) {

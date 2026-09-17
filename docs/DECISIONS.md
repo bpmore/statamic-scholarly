@@ -700,3 +700,29 @@ found the URL.
 **Rejected.** Laravel's `database` notification channel as the bell: it
 needs a `notifications` table the host must migrate, and nothing in the
 panel would show what it stored.
+
+## 2026-09-17: Marketplace readiness: upgrades add fields, and the feed can be turned off
+
+**Decision.** `scholarly:install` (and the first fetch, through `ensure()`)
+appends to an existing publications blueprint any field a newer version
+ships that the blueprint lacks, in the tab and section it ships in, and
+changes nothing the host already has. `feed.enabled` turns the public JSON
+feed off; a config from before the key existed keeps it on, as it was. A
+`.gitattributes` keeps tests, fixtures and CI out of the Composer dist.
+`composer.json` names the issue tracker as the support path, and the README
+lists every outbound request the addon makes.
+
+**Why.** Statamic's marketplace guidelines (revision 2026-09-14) ask that
+an add-on update preserve existing content and configuration (rule 06),
+that external data flows be documented and authorisation be appropriate
+(rule 07), and that customers have a support path (rule 09). The blueprint
+gap was real: the dogfood site's blueprint, regenerated before the discard
+floor existed, had no `discarded_at` field, so a set-aside candidate could
+not be seen or filtered in the panel. The marketplace review skill
+(`.agents/skills/marketplace-review/SKILL.md`, downloaded from
+statamic.com) is kept in the repository so the next review runs the same
+checks.
+
+**Rejected.** Rewriting the blueprint on install (the host's changes would
+be lost). Leaving the feed always on (public data, but a site may not want
+an endpoint it did not ask for).

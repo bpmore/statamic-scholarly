@@ -186,3 +186,23 @@ function feedCases(): array
         },
     ];
 }
+
+/**
+ * @return array<string, Closure(): void>
+ */
+function readinessCases(): array
+{
+    return [
+        'answers 404 from the feed when a site turns it off' => function (): void {
+            $ada = tagResearcher('ada');
+            publication(['title' => 'P', 'researchers' => [$ada->id()]]);
+            config()->set('statamic-scholarly.feed.enabled', false);
+
+            $this->getJson('/!/statamic-scholarly/feed/ada')->assertNotFound();
+
+            config()->set('statamic-scholarly.feed.enabled', true);
+
+            expect($this->getJson('/!/statamic-scholarly/feed/ada')->json('count'))->toBe(1);
+        },
+    ];
+}

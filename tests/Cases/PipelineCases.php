@@ -383,3 +383,38 @@ function pipelineCases(): array
         }
     ];
 }
+
+/**
+ * @return array<string, Closure(): void>
+ */
+function upgradeCases(): array
+{
+    return [
+        'adds fields a later version shipped to a blueprint that already exists, and touches nothing else' => function (): void {
+            $collection = app(PublicationsCollection::class);
+            $collection->ensure();
+
+            // A blueprint from an older version: the site renamed a display,
+            // and two fields this version ships do not exist yet.
+            $blueprint = Blueprint::find('collections.'.PUBLICATIONS.'.publication');
+            $contents = $blueprint->contents();
+            $contents['tabs']['main']['sections'][0]['fields'][0]['field']['display'] = 'Paper title';
+            $contents['tabs']['sidebar']['sections'][0]['fields'] = array_values(array_filter(
+                $contents['tabs']['sidebar']['sections'][0]['fields'],
+                fn (array $f) => ! in_array($f['handle'], ['discarded_at', 'auto_approved'], true),
+            ));
+            $blueprint->setContents($contents)->save();
+
+            expect(Blueprint::find('collections.'.PUBLICATIONS.'.publication')->hasField('discarded_at'))->toBeFalse();
+
+            $collection->ensure();
+
+            $upgraded = Blueprint::find('collections.'.PUBLICATIONS.'.publication');
+
+            expect($upgraded->hasField('discarded_at'))->toBeTrue()
+                ->and($upgraded->hasField('auto_approved'))->toBeTrue()
+                ->and($upgraded->field('title')->display())->toBe('Paper title', 'the host\'s change survives')
+                ->and(count($upgraded->fields()->all()))->toBe(count($collection->addMissingFields($upgraded)) + count($upgraded->fields()->all()), 'a second pass adds nothing');
+        },
+    ];
+}
