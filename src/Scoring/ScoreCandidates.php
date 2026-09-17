@@ -122,6 +122,7 @@ final class ScoreCandidates
             'confidence_score' => $score,
             'confidence_state' => $state,
             'confidence_breakdown' => $breakdown,
+            'confidence_why' => self::why($signals, $contributions, $state, $score, $fingerprint->certainPapers),
             'scored_at' => \date(DATE_ATOM),
         ];
 
@@ -173,6 +174,41 @@ final class ScoreCandidates
         }
 
         return $state === 'calibrated' && $score < $this->setAsideBelow;
+    }
+
+    /**
+     * The breakdown as sentences, for the entry's sidebar. The key/value
+     * grid is kept for machines; a person reads this. Written because the
+     * grid's key column truncates "signal_coauthor_overlap" to "signal_c" in
+     * a sidebar, which is a reason nobody can read.
+     *
+     * @param  array<string, float>  $contributions
+     */
+    public static function why(Signals $s, array $contributions, string $state, float $score, int $certainPapers): string
+    {
+        if ($s->anchored) {
+            return \sprintf(
+                "Certain: %s.\nNot scored; an anchor is the researcher's own identifier.",
+                $s->nameMatch === NameMatch::Full && $contributions === [] ? "the researcher's own ORCID iD is on the author line, or they claimed this work on their record" : 'anchored',
+            );
+        }
+
+        $weight = static fn (string $term): string => isset($contributions[$term]) && \abs($contributions[$term]) >= 0.005
+            ? \sprintf(' (%+.2f)', $contributions[$term])
+            : '';
+
+        $lines = [
+            \sprintf('Name match: %s%s', $s->nameMatch->value, $weight('name_full').$weight('name_surname')),
+            \sprintf('Affiliation match: %s%s', $s->affiliationMatch ? 'yes' : 'no', $weight('affiliation_match')),
+            \sprintf('Co-authors shared with certain papers: %d of the others, %d%% overlap%s%s', $s->sharedCoauthors, (int) \round($s->coauthorOverlap * 100), $weight('coauthor_overlap'), $weight('shared_coauthors')),
+            \sprintf('Journal seen on a certain paper: %s%s', $s->journalSeen ? 'yes' : 'no', $weight('journal_seen')),
+            \sprintf('Sources reporting it: %d%s', $s->corroboration, $weight('corroboration')),
+            \sprintf('Name prevalence in PubMed: %s%s', $s->namePrevalence === null ? 'unknown' : $s->namePrevalence.' records', $weight('name_prevalence')),
+            \sprintf('Starting point: %+.2f. Certain papers in the fingerprint: %d.', $contributions['intercept'] ?? 0.0, $certainPapers),
+            \sprintf('Result: %.2f, %s.', $score, $state === 'calibrated' ? 'a calibrated probability' : 'the shipped prior; an ordering, not a probability'),
+        ];
+
+        return \implode("\n", $lines);
     }
 
     /**

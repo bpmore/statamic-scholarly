@@ -18,6 +18,10 @@ have verified entries by hand and cannot re-verify them.
 - `feed.enabled` config key: `false` turns the public JSON feed off.
 - A support path in `composer.json` and the README, and a README section
   listing every outbound request the addon makes.
+- `confidence_why`: the score's breakdown as sentences on the entry, in
+  place of a key/value grid whose keys the sidebar truncated to
+  "signal_c". The raw breakdown stays, hidden, for machines.
+- Screenshots in the README.
 
 ### Changed
 
