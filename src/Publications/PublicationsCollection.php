@@ -39,7 +39,10 @@ final class PublicationsCollection
      * missing collection at two in the morning should be created, not turned
      * into a night of failed jobs.
      */
-    public function ensure(): void
+    /**
+     * @return list<string> Field handles added to an existing blueprint
+     */
+    public function ensure(): array
     {
         if (Collection::findByHandle($this->handle) === null) {
             Collection::make($this->handle)
@@ -47,12 +50,54 @@ final class PublicationsCollection
                 ->save();
         }
 
-        if (Blueprint::find('collections.'.$this->handle.'.'.self::BLUEPRINT) === null) {
+        $blueprint = Blueprint::find('collections.'.$this->handle.'.'.self::BLUEPRINT);
+
+        if ($blueprint === null) {
             Blueprint::make(self::BLUEPRINT)
                 ->setNamespace('collections.'.$this->handle)
                 ->setContents($this->blueprintContents())
                 ->save();
+
+            return [];
         }
+
+        return $this->addMissingFields($blueprint);
+    }
+
+    /**
+     * An upgrade that adds a field must reach a blueprint that already
+     * exists, or the control panel never shows it and the host is left with
+     * data it cannot see. Fields the host already has, and anything the
+     * host changed about them, are left exactly as they are: only handles
+     * the blueprint lacks are appended, to the tab and section they ship in.
+     *
+     * @return list<string> Handles added
+     */
+    public function addMissingFields(\Statamic\Fields\Blueprint $blueprint): array
+    {
+        $contents = $blueprint->contents();
+        $added = [];
+
+        foreach ($this->blueprintContents()['tabs'] as $tabHandle => $tab) {
+            foreach ($tab['sections'] as $sectionIndex => $section) {
+                foreach ($section['fields'] as $field) {
+                    if ($blueprint->hasField($field['handle'])) {
+                        continue;
+                    }
+
+                    $contents['tabs'][$tabHandle] ??= ['display' => $tab['display'] ?? \ucfirst($tabHandle), 'sections' => []];
+                    $contents['tabs'][$tabHandle]['sections'][$sectionIndex] ??= ['fields' => []];
+                    $contents['tabs'][$tabHandle]['sections'][$sectionIndex]['fields'][] = $field;
+                    $added[] = $field['handle'];
+                }
+            }
+        }
+
+        if ($added !== []) {
+            $blueprint->setContents($contents)->save();
+        }
+
+        return $added;
     }
 
     /**

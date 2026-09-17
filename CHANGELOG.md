@@ -10,7 +10,19 @@ have verified entries by hand and cannot re-verify them.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- `scholarly:install` adds any field a newer version ships to an existing
+  publications blueprint, and says which. Nothing the site changed is
+  touched.
+- `feed.enabled` config key: `false` turns the public JSON feed off.
+- A support path in `composer.json` and the README, and a README section
+  listing every outbound request the addon makes.
+
+### Changed
+
+- Composer dist downloads no longer include the tests, fixtures and CI
+  configuration.
 
 ## [0.2.0] - 2026-09-15
 

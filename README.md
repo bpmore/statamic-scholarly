@@ -260,11 +260,35 @@ Access is its own permission, **Access Scholarly utility**, under Utilities
 in a role's permissions. Super users have it. Credentials are never shown,
 only whether they are set.
 
+## What it sends where
+
+Every outbound request the addon makes, so you can decide whether that is
+acceptable on your site. Nothing is sent on a page render; all of it runs
+from `scholarly:fetch`, `scholarly:notify` and `scholarly:calibrate`.
+
+- **NCBI E-utilities** (`eutils.ncbi.nlm.nih.gov`): the researcher's PubMed
+  author string, PMIDs, your `SCHOLARLY_NCBI_EMAIL`, the tool name
+  `statamic-scholarly`, and your API key if set. NCBI's usage policy asks
+  for the email and tool name so they can contact a heavy client.
+- **ORCID public API** (`pub.orcid.org`): the researcher's ORCID iD, and
+  your access token if set.
+- **Your webhook URL**, if configured: the review digest (researcher names,
+  counts, the last run's verdict), signed.
+- **Mail**, through your site's mail driver: the same digest to verifiers.
+
+No candidate content, verifier decisions or site data go anywhere else.
+Caches (NCBI responses for a week, the fitted model) live in your site's
+cache store and `storage/app`.
+
 ## Upgrading
 
 A published config does not gain new keys on its own. After an upgrade,
 compare `config/statamic-scholarly.php` with the shipped one; a missing key
-reads as the safe direction (for example, auto-approval off).
+reads as the safe direction (for example, auto-approval off). Then run
+`php please scholarly:install` again: it adds any fields the new version
+ships to your existing blueprint and leaves everything you changed alone.
+Your entries, decisions and configuration are never rewritten by an
+upgrade.
 
 ## Adding your own source
 
@@ -277,6 +301,14 @@ If your application already has a PubMed client, bind
 `Bpmore\Scholarly\Contracts\PublicationMetadataFetcher` to it. Otherwise you
 get two clients caching the same records under different keys, and the two
 caches can disagree.
+
+## Support
+
+Report a problem or ask a question at
+<https://github.com/bpmore/statamic-scholarly/issues>. Say which version
+(`composer show bpmore/statamic-scholarly`), which Statamic version, and,
+for a fetch problem, the report line the command printed: it names the
+source that could not answer.
 
 ## Licence
 

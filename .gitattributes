@@ -1,0 +1,9 @@
+# What a Composer dist download leaves out. The tests and fixtures are for
+# this repository; the corpus and docs travel, because they are how the
+# behaviour is explained.
+/.agents        export-ignore
+/.github        export-ignore
+/tests          export-ignore
+/phpunit.xml    export-ignore
+/.gitattributes export-ignore
+/.gitignore     export-ignore
