@@ -100,7 +100,9 @@ final class Scholarly extends Tags
 
             // Ids are strings on the Stache and may be integers on the
             // Eloquent driver; the stored researchers list holds strings.
-            return \is_string($current) || \is_int($current) ? ((string) $current ?: null) : null;
+            return \is_string($current) || \is_int($current)
+                ? $this->approved->resolveResearcherId((string) $current)
+                : null;
         }
 
         return $this->approved->resolveResearcherId((string) $given);

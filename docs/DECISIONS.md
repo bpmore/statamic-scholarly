@@ -3,6 +3,30 @@
 Why things are the way they are, and what was turned down. Read before choosing
 an approach; add an entry when a change settles a question.
 
+## 2026-11-01: Approval does not override the site's publish state
+
+**Decision.** The public query requires both Scholarly approval and Statamic's
+`published` status. A researcher must also be published, whether selected by
+id, slug or the tag's current-entry context. Drafts, scheduled entries and
+expired entries cannot appear through a public list, count or JSON feed.
+
+**Why.** Release review reproduced an approved draft in the public list, a
+draft researcher's feed returning 200, and a scheduled paper appearing before
+its date. Approval answers whose work a paper is. The site's publish state
+answers whether it may be shown. Both decisions have to hold.
+
+**Rejected.** Checking only the `published` boolean, which would still expose
+scheduled or expired entries in dated collections. `whereStatus('published')`
+uses Statamic's own date behavior on both supported storage drivers. Also a
+feed-only check, which would leave tags and counts with different answers.
+
+**Verification.** Shared tag/feed cases run on the Stache and on Eloquent with
+UUID and integer ids. The three original regression cases failed before the
+fix. Matching, de-duplication and scoring rules are unchanged.
+
+Previously cached pages and feeds need a host/CDN cache purge after upgrading;
+the addon cannot revoke a response already held by an external cache.
+
 ## 2026-09-14: A page under Tools that reads, and a config file that is still where settings change
 
 **Decision.** Scholarly has a utility in the control panel, under Tools,

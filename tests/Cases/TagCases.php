@@ -193,6 +193,72 @@ function feedCases(): array
 function readinessCases(): array
 {
     return [
+        'keeps an approved draft out of every public list and count' => function (): void {
+            $ada = tagResearcher('ada');
+            publication(['title' => 'Public paper', 'researchers' => [$ada->id()]]);
+            $draft = publication(['title' => 'Private draft paper', 'researchers' => [$ada->id()]]);
+            $draft->published(false)->save();
+
+            expect($draft->status())->toBe('draft')
+                ->and(render('{{ scholarly:publications researcher="ada" status="any" }}{{ title }}{{ /scholarly:publications }}'))->toBe('Public paper')
+                ->and(render('{{ scholarly:publications_count researcher="ada" }}'))->toBe('1');
+
+            $response = $this->getJson('/!/statamic-scholarly/feed/ada');
+            $response->assertOk()->assertJsonCount(1, 'publications');
+            expect($response->json('publications.0.title'))->toBe('Public paper');
+        },
+
+        'does not expose an unpublished researcher by id slug or current-entry context' => function (): void {
+            $ada = tagResearcher('ada');
+            publication(['title' => 'A private researcher paper', 'researchers' => [$ada->id()]]);
+            $ada->published(false)->save();
+
+            expect($ada->status())->toBe('draft');
+
+            foreach (['ada', (string) $ada->id()] as $given) {
+                $this->getJson('/!/statamic-scholarly/feed/'.$given)->assertNotFound();
+                expect(render('{{ scholarly:publications researcher="'.$given.'" }}{{ title }}{{ /scholarly:publications }}'))->toBe('')
+                    ->and(render('{{ scholarly:publications_count researcher="'.$given.'" }}'))->toBe('0')
+                    ->and(render('{{ scholarly:feed_url researcher="'.$given.'" }}'))->toBe('');
+            }
+
+            expect(render('{{ scholarly:publications }}{{ title }}{{ /scholarly:publications }}', ['id' => $ada->id()]))->toBe('')
+                ->and(render('{{ scholarly:publications_count }}', ['id' => $ada->id()]))->toBe('0')
+                ->and(render('{{ scholarly:feed_url }}', ['id' => $ada->id()]))->toBe('');
+        },
+
+        'keeps scheduled approved papers private until their collection permits publication' => function (): void {
+            $ada = tagResearcher('ada');
+            Collection::findByHandle(TAG_PUBS)->dated(true)->futureDateBehavior('private')->save();
+
+            foreach (['Public paper' => now()->subDay(), 'Scheduled paper' => now()->addDay()] as $title => $date) {
+                Entry::make()->collection(TAG_PUBS)->slug((string) Str::uuid())->date($date)
+                    ->data(['title' => $title, 'verification_status' => 'approved', 'researchers' => [$ada->id()]])->save();
+            }
+
+            expect(render('{{ scholarly:publications researcher="ada" }}{{ title }}{{ /scholarly:publications }}'))->toBe('Public paper')
+                ->and(render('{{ scholarly:publications_count researcher="ada" }}'))->toBe('1');
+            $this->getJson('/!/statamic-scholarly/feed/ada')->assertOk()->assertJsonCount(1, 'publications');
+        },
+
+        'keeps expired approved papers out of the public list count and feed' => function (): void {
+            $ada = tagResearcher('ada');
+            Collection::findByHandle(TAG_PUBS)->dated(true)->pastDateBehavior('private')->futureDateBehavior('public')->save();
+
+            foreach (['Public paper' => now()->addDay(), 'Expired paper' => now()->subDay()] as $title => $date) {
+                $paper = Entry::make()->collection(TAG_PUBS)->slug((string) Str::uuid())->date($date)
+                    ->data(['title' => $title, 'verification_status' => 'approved', 'researchers' => [$ada->id()]]);
+                $paper->save();
+                expect($paper->status())->toBe($title === 'Expired paper' ? 'expired' : 'published');
+            }
+
+            expect(render('{{ scholarly:publications researcher="ada" }}{{ title }}{{ /scholarly:publications }}'))->toBe('Public paper')
+                ->and(render('{{ scholarly:publications_count researcher="ada" }}'))->toBe('1');
+            $response = $this->getJson('/!/statamic-scholarly/feed/ada');
+            $response->assertOk()->assertJsonCount(1, 'publications');
+            expect($response->json('publications.0.title'))->toBe('Public paper');
+        },
+
         'answers 404 from the feed when a site turns it off' => function (): void {
             $ada = tagResearcher('ada');
             publication(['title' => 'P', 'researchers' => [$ada->id()]]);

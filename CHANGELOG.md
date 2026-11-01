@@ -10,7 +10,24 @@ have verified entries by hand and cannot re-verify them.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Public publication lists, counts and feeds now respect Statamic's publish
+  state as well as Scholarly approval. Approved drafts, scheduled papers and
+  expired papers stay private. Draft or otherwise private researchers have
+  no public feed, including when selected by id or the current entry context.
+- The install guide now requires the 0.3 release line instead of 0.1.
+- Package descriptions and the README no longer imply every approved paper
+  was confirmed by a person. Automatic approval is described explicitly.
+
+### Added
+
+- Editor permission and scheduler setup instructions, Marketplace listing
+  copy, and a release-readiness record.
+
+After upgrading, clear the site's static cache and purge any publication
+pages or feeds stored by a CDN. Previously cached responses may contain
+content that the corrected output no longer returns.
 
 ## [0.3.0] - 2026-09-17
 

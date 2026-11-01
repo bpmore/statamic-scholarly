@@ -23,7 +23,7 @@ final class ApprovedPublications
 
     /**
      * An id, or a slug in the researcher collection, to the researcher's
-     * id. Null when there is no such researcher.
+     * id. Null when there is no publicly published researcher.
      */
     public function resolveResearcherId(string $given): ?string
     {
@@ -36,11 +36,12 @@ final class ApprovedPublications
         $entry = Entry::find($given);
 
         if ($entry !== null && $entry->collectionHandle() === $this->researcherCollection) {
-            return (string) $entry->id();
+            return $entry->status() === 'published' ? (string) $entry->id() : null;
         }
 
         $bySlug = Entry::query()
             ->where('collection', $this->researcherCollection)
+            ->whereStatus('published')
             ->where('slug', $given)
             ->first();
 
@@ -54,6 +55,9 @@ final class ApprovedPublications
     {
         $query = Entry::query()
             ->where('collection', $this->collection->handle())
+            // Approval records whose work this is, not whether the site has
+            // published it. Drafts and scheduled entries must stay private.
+            ->whereStatus('published')
             ->where('verification_status', 'approved');
 
         // The addon stores researcher ids as strings; a host's entries

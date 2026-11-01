@@ -45,7 +45,7 @@ final class Confirm extends Action
     public function confirmationText()
     {
         /** @translation */
-        return 'Confirm this publication as the listed researchers\' work? It will appear on their public profiles.|Confirm these :count publications? They will appear on their researchers\' public profiles.';
+        return 'Confirm this publication as the listed researchers\' work? It can appear on public profiles when the publication and researcher are published.|Confirm these :count publications? They can appear on public profiles when the publications and researchers are published.';
     }
 
     public function buttonText()

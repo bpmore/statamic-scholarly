@@ -339,6 +339,11 @@ A `type` parameter waits on a stored publication type, which no source records y
 **Only `approved` entries are ever returned**, from the tag, the JSON feed and the schema output
 alike. Candidate and rejected entries are unreachable from every frontend surface.
 
+Approval does not override Statamic's publish state. The public query also requires
+`published` status, excluding drafts and entries made private by collection date behavior.
+The selected researcher must be published too, including selection by id, slug or current
+entry context. A private researcher has no public feed; lists are empty and counts are zero.
+
 Phase 2 adds `scholarly:feed` (JSON), the `scholarly:citation` modifier (AMA, APA, Vancouver), and a
 read-only control-panel fieldtype showing recent verified publications on the researcher entry.
 **Built:** the feed at `/!/statamic-scholarly/feed/{researcher}` with `{{ scholarly:feed_url }}`, and
