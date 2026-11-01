@@ -3,9 +3,10 @@
 Builds a verified publication list for a researcher profile in Statamic.
 
 Publications are pulled from ORCID and PubMed, de-duplicated across sources,
-scored, and put in front of a person to confirm before any of it appears on a
-site. The hard part is not fetching: it is knowing which of the many people
-sharing a name actually wrote the paper.
+scored, and queued for review. With automatic approval on, an ORCID claim or
+a calibrated score can also approve a paper without a person. The hard part
+is not fetching: it is knowing which of the many people sharing a name
+actually wrote the paper.
 
 > **Status: 0.x.** The data model may still change while the major version is
 > 0. See the [changelog](CHANGELOG.md). Once it is 1, the publication entry
@@ -76,7 +77,7 @@ for one the first time, or set it with `composer config --global
 github-oauth.github.com <token>`):
 
 ```
-composer require bpmore/statamic-scholarly:^0.1
+composer require bpmore/statamic-scholarly:^0.3
 php artisan vendor:publish --tag=statamic-scholarly-config
 php please scholarly:install
 ```
@@ -84,6 +85,22 @@ php please scholarly:install
 `scholarly:install` creates the publications collection the addon owns and
 writes a `scholarly` fieldset for your researcher blueprint. It is safe to
 run again.
+
+### Give editors access
+
+In **Users > Permissions**, grant **Scholarly > Verify publications** to people who
+may confirm, reject or defer papers. Also grant the normal collection
+permissions they need to open and edit publications and researcher profiles.
+**Access Scholarly utility**, under Utilities, opens the read-only status
+page. These are separate permissions; seeing the status page does not grant
+the right to approve papers. Super users already have access.
+
+### Run the schedule
+
+The default schedule fetches publications and sends review notifications
+daily. Enable Laravel's scheduler on the host, and run a queue worker when
+the site's queue connection is not `sync`. To check one researcher without
+a worker, use `php please scholarly:fetch <researcher> --sync`.
 
 ### Set a contact email
 
@@ -214,7 +231,11 @@ person, which is the right thing when the file is the researcher's own list.
 ```
 
 Only approved publications are ever returned, and there is no parameter to
-change that. `researcher` takes an id or a slug and defaults to the current
+change that. Approval does not override Statamic's publish state: draft,
+scheduled and expired publications stay out of the list, count and feed.
+The researcher must also be published. A private or missing researcher has
+no public feed and produces an empty list and a zero count.
+`researcher` takes an id or a slug and defaults to the current
 entry; `year` takes `2020` or `2020:2024`; `sort`, `limit`, `paginate`, `as`
 and `journal` work as on the collection tag.
 
@@ -297,6 +318,11 @@ reads as the safe direction (for example, auto-approval off). Then run
 ships to your existing blueprint and leaves everything you changed alone.
 Your entries, decisions and configuration are never rewritten by an
 upgrade.
+
+After updating from 0.3.0, clear the site's static cache and purge any cached
+publication pages or JSON feeds from your CDN. Older versions could include
+an approved draft or a private researcher in public output; the fix cannot
+remove responses already saved by a browser or an external cache.
 
 ## Adding your own source
 

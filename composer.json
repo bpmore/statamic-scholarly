@@ -1,6 +1,6 @@
 {
     "name": "bpmore/statamic-scholarly",
-    "description": "Aggregates, de-duplicates and routes research publications to verified researcher profiles.",
+    "description": "Publication matching and review for researcher profiles, with ORCID, PubMed, imports and approved-only output.",
     "keywords": ["statamic", "research", "publications", "orcid", "pubmed"],
     "license": "proprietary",
     "type": "statamic-addon",
@@ -51,7 +51,7 @@
         "statamic": {
             "name": "Scholarly",
             "slug": "statamic-scholarly",
-            "description": "Verified publication lists for researcher profiles: fetched from ORCID and PubMed, de-duplicated, scored, and confirmed by a person before they go public.",
+            "description": "Match publications from ORCID and PubMed to researcher profiles. Human review, ORCID claims or calibrated scores decide which publications are approved.",
             "url": "https://github.com/bpmore/statamic-scholarly"
         },
         "laravel": {
