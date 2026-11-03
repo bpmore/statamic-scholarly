@@ -10,13 +10,14 @@ have verified entries by hand and cannot re-verify them.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-02
+
 ### Fixed
 
 - Repeated ORCID fetches now reuse records without a DOI or PMID by keeping
   scoped ORCID work IDs. Edited and rejected records retain their review.
   Older duplicates without source IDs need manual review; the upgrade does
   not merge or delete entries by title.
-
 - Public publication lists, counts and feeds now respect Statamic's publish
   state as well as Scholarly approval. Approved drafts, scheduled papers and
   expired papers stay private. Draft or otherwise private researchers have
@@ -30,7 +31,8 @@ have verified entries by hand and cannot re-verify them.
 - Editor permission and scheduler setup instructions, Marketplace listing
   copy, and a release-readiness record.
 
-After upgrading, clear the site's static cache and purge any publication
+After upgrading, run `php please scholarly:install` to add the source-record
+field without changing existing fields. Clear the site's static cache and purge any publication
 pages or feeds stored by a CDN. Previously cached responses may contain
 content that the corrected output no longer returns.
 
