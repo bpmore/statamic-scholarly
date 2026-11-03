@@ -104,7 +104,7 @@ final class PublicationWriter
 
     /**
      * The site's entry for this paper, whoever it was fetched for, matched
-     * on DOI then PMID.
+     * on DOI, PMID, then the source's scoped record identity.
      *
      * Title is never a match key here either, for the same reason it is not
      * one in the de-duplicator.
@@ -119,6 +119,17 @@ final class PublicationWriter
             $entry = Entry::query()
                 ->where('collection', $this->collection->handle())
                 ->where($field, $value)
+                ->first();
+
+            if ($entry !== null) {
+                return $entry;
+            }
+        }
+
+        foreach (Snapshot::fromMerged($publication)['source_record_ids'] as $id) {
+            $entry = Entry::query()
+                ->where('collection', $this->collection->handle())
+                ->whereJsonContains('source_record_ids', $id)
                 ->first();
 
             if ($entry !== null) {
@@ -170,6 +181,7 @@ final class PublicationWriter
         $entry->merge([
             ...$values,
             'source_apis' => $this->unionSources($entry, $values['source_apis'] ?? []),
+            'source_record_ids' => $this->unionRecordIds($entry, $values['source_record_ids'] ?? []),
             'researchers' => $this->withResearcher($entry, $researcher),
             'fetched_at' => $fetchedAt,
         ]);
@@ -195,6 +207,16 @@ final class PublicationWriter
         }
 
         return $sources;
+    }
+
+    /** @return list<string> */
+    private function unionRecordIds(EntryContract $entry, array $reported): array
+    {
+        // Retain old aliases when a source changes which record it prefers.
+        return \array_values(\array_unique([
+            ...(array) $entry->get('source_record_ids', []),
+            ...$reported,
+        ]));
     }
 
     /**
@@ -264,6 +286,7 @@ final class PublicationWriter
         $entry->merge([
             ...$fill,
             'source_apis' => $this->unionSources($entry, $values['source_apis']),
+            'source_record_ids' => $this->unionRecordIds($entry, $values['source_record_ids'] ?? []),
             'fetched_at' => $fetchedAt,
             // From the stored title, which the verifier may have corrected,
             // not from the fetched one.

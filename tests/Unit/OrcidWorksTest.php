@@ -178,3 +178,28 @@ it('refuses a response that is not a works listing instead of reading it as empt
     'group is not a list' => [['group' => 'x']],
     'group without a summary' => [['group' => [['external-ids' => ['external-id' => []], 'work-summary' => []]]]],
 ]);
+
+
+it('preserves scoped ORCID identities through enrichment and preferred-summary changes', function (): void {
+    $group = orcidGroup([], ['put-code' => 12]);
+    $other = $group['work-summary'][0];
+    $other['put-code'] = '34';
+    $other['display-index'] = '2';
+    $group['work-summary'][] = $other;
+    $record = 'https://pub.orcid.org/v3.0/0000-0002-1825-0097';
+    $candidate = OrcidWorks::candidates(['group' => [$group]], recordUri: $record)[0];
+    expect($candidate->sourceRecordIds)->toBe([$record.'/work/12', $record.'/work/34'])
+        ->and($candidate->withDetails([['name' => 'Author']], 'Abstract')->sourceRecordIds)->toBe($candidate->sourceRecordIds);
+    $group['work-summary'][0]['display-index'] = '3';
+    expect(OrcidWorks::candidates(['group' => [$group]], recordUri: $record)[0]->sourceRecordIds)->toBe($candidate->sourceRecordIds);
+    $different = OrcidWorks::candidates(['group' => [$group]], recordUri: 'https://pub.orcid.org/v3.0/another-person')[0];
+    expect(array_intersect($candidate->sourceRecordIds, $different->sourceRecordIds))->toBe([]);
+    $sandbox = OrcidWorks::candidates(['group' => [$group]], recordUri: 'https://pub.sandbox.orcid.org/v3.0/0000-0002-1825-0097')[0];
+    expect(array_intersect($candidate->sourceRecordIds, $sandbox->sourceRecordIds))->toBe([]);
+});
+
+it('does not invent source identity without a record URI or a valid put-code', function (): void {
+    $group = orcidGroup([], ['put-code' => null]);
+    expect(OrcidWorks::candidates(['group' => [$group]], recordUri: 'https://pub.orcid.org/v3.0/person')[0]->sourceRecordIds)->toBe([])
+        ->and(OrcidWorks::candidates(['group' => [orcidGroup([])]])[0]->sourceRecordIds)->toBe([]);
+});

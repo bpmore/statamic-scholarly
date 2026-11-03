@@ -71,6 +71,76 @@ function pipelineCasesSetup(): void
 function pipelineCases(): array
 {
     return [
+        'updates the same ORCID records on repeat without merging equal titles' => function (): void {
+            $case = dirname(__DIR__, 2).'/corpus/cases/orcid-record-identity/';
+            $input = json_decode(file_get_contents($case.'input.json'), true, flags: JSON_THROW_ON_ERROR);
+            $expected = json_decode(file_get_contents($case.'expected.json'), true, flags: JSON_THROW_ON_ERROR);
+            $candidates = array_map(fn (array $row) => new CandidatePublication(...$row), $input['candidates']);
+            $groups = (new Deduplicator)->merge($candidates);
+            expect($groups)->toHaveCount($expected['groups']);
+            $researcher = aResearcher();
+            $fetch = pipeline(new FakeSource('orcid', found('orcid', ...$candidates)));
+            expect($fetch($researcher)->written->created)->toBe($expected['firstCreated']);
+            $ids = array_map(fn ($e) => (string) $e->id(), publicationsFor($researcher));
+            expect($fetch($researcher)->written->created)->toBe($expected['repeatCreated'])
+                ->and(publicationsFor($researcher))->toHaveCount($expected['savedRecords'])
+                ->and(array_map(fn ($e) => (string) $e->id(), publicationsFor($researcher)))->toBe($ids);
+        },
+
+        'keeps source aliases across DOI refreshes and later keyless fetches' => function (): void {
+            $person = aResearcher();
+            $id = 'https://pub.orcid.org/v3.0/person/work/1';
+            $alias = 'https://pub.orcid.org/v3.0/person/work/2';
+            $run = fn (CandidatePublication $c) => pipeline(new FakeSource('orcid', found('orcid', $c)))($person);
+            $run(new CandidatePublication('orcid', title: 'Original', doi: '10.1000/a'));
+            $entry = publicationsFor($person)[0];
+            $entry->merge(['verification_status' => 'approved', 'title' => 'Human correction'])->save();
+            $run(new CandidatePublication('orcid', title: 'Source title', doi: '10.1000/a', sourceRecordIds: [$id, $alias]));
+            $report = $run(new CandidatePublication('orcid', title: 'Changed title', sourceRecordIds: [$alias]));
+            $saved = Entry::find($entry->id());
+            expect($report->written->created)->toBe(0)
+                ->and($saved->get('title'))->toBe('Human correction')
+                ->and($saved->get('source_record_ids'))->toBe([$id, $alias])
+                ->and($saved->get('verification_status'))->toBe('approved');
+        },
+
+        'keeps a source record identity when candidates gain a DOI and refresh without it' => function (): void {
+            $person = aResearcher();
+            $run = fn (CandidatePublication $c) => pipeline(new FakeSource('orcid', found('orcid', $c)))($person);
+            $run(new CandidatePublication('orcid', title: 'First', sourceRecordIds: ['orcid:person:1', 'orcid:person:2']));
+            $run(new CandidatePublication('orcid', title: 'Second', doi: '10.1000/a', sourceRecordIds: ['orcid:person:2']));
+            $report = $run(new CandidatePublication('orcid', title: 'Third', sourceRecordIds: ['orcid:person:1']));
+            $entries = publicationsFor($person);
+            expect($report->written->created)->toBe(0)
+                ->and($entries)->toHaveCount(1)
+                ->and($entries[0]->get('title'))->toBe('Third')
+                ->and($entries[0]->get('doi'))->toBe('10.1000/a')
+                ->and($entries[0]->get('source_record_ids'))->toBe(['orcid:person:1', 'orcid:person:2']);
+        },
+
+        'does not recreate a rejected source record or overwrite its review' => function (): void {
+            $person = aResearcher();
+            $candidate = new CandidatePublication('orcid', title: 'Rejected work', sourceRecordIds: ['orcid:person:1']);
+            $fetch = pipeline(new FakeSource('orcid', found('orcid', $candidate)));
+            $fetch($person);
+            $entry = publicationsFor($person)[0];
+            $entry->merge(['verification_status' => 'rejected', 'rejection_reason' => 'Wrong person'])->save();
+            $report = $fetch($person);
+            expect($report->written->created)->toBe(0)
+                ->and($report->written->suppressed)->toBe(1)
+                ->and(publicationsFor($person))->toHaveCount(1)
+                ->and(Entry::find($entry->id())->get('rejection_reason'))->toBe('Wrong person');
+        },
+
+        'does not guess an identity for legacy records with the same title' => function (): void {
+            $person = aResearcher();
+            pipeline(new FakeSource('orcid', found('orcid', new CandidatePublication('orcid', title: 'Same title'))))($person);
+            $fetch = pipeline(new FakeSource('orcid', found('orcid', new CandidatePublication('orcid', title: 'Same title', sourceRecordIds: ['orcid:person:1']))));
+            expect($fetch($person)->written->created)->toBe(1)
+                ->and($fetch($person)->written->created)->toBe(0)
+                ->and(publicationsFor($person))->toHaveCount(2);
+        },
+
         'creates the owned collection and blueprint under the configured handles, once' => function (): void {
         expect(Collection::findByHandle(PUBLICATIONS))->toBeNull();
 

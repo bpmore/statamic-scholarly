@@ -750,3 +750,24 @@ checks.
 **Rejected.** Rewriting the blueprint on install (the host's changes would
 be lost). Leaving the feed always on (public data, but a site may not want
 an endpoint it did not ask for).
+
+
+## 2026-11-02: Retain ORCID record identity across fetches
+
+**Decision.** Preserve every positive work put-code from an ORCID group's
+summaries, scoped to the configured API record URL, in `source_record_ids`.
+Enrichment preserves them. The publication writer tries these after DOI and
+PMID, retains old aliases during refresh and approval, and respects rejected
+records. Installation adds the hidden read-only list field to the blueprint.
+
+**Why.** Live calls for C. Titus Brown returned four works with neither DOI
+nor PMID. Each repeated full fetch created another four entries. A put-code
+is stable within its ORCID record; a title is not a safe identity. Keeping all
+summary aliases avoids a duplicate when the preferred summary changes.
+
+**Rejected.** Matching titles (different works share titles); unscoped
+put-codes (researcher records and sandbox hosts must not collide); deleting
+legacy duplicates automatically (older records lack proof of source identity).
+Existing keyless records without this field need manual review. The first
+fetch after upgrade can add one identifiable copy; later fetches reuse it.
+Deduplicator grouping rules and public output fields do not change.

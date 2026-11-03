@@ -132,6 +132,7 @@ final class PublicationsCollection
                             $field('pmid', ['type' => 'text', 'display' => 'PMID', 'width' => 50]),
                             $field('external_urls', ['type' => 'list', 'display' => 'External URLs']),
                             $field('source_apis', ['type' => 'list', 'display' => 'Reported by', 'instructions' => 'Which sources returned this paper. A name search is an estimate, not a claim.', 'listable' => true]),
+                            $field('source_record_ids', ['type' => 'list', 'display' => 'Source record IDs', 'read_only' => true, 'listable' => false, 'visibility' => 'hidden']),
                         ]],
                     ],
                 ],

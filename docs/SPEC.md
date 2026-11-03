@@ -162,7 +162,7 @@ ships an optional fieldset for hosts that have none, but never requires its own.
 `authors` (ordered, each `{name, affiliation, orcid}`), `researchers` (entries to the configured
 collection), `source_apis`, `confidence_score` and `confidence_breakdown` (Phase 2),
 `verification_status` (`candidate`, `approved` or `rejected`), `verified_by`, `verified_at`,
-`external_urls`, `possible_duplicates`, `fetched_at`.
+`external_urls`, `source_record_ids`, `possible_duplicates`, `fetched_at`.
 
 **One entry per paper.** Papers are co-authored, and `researchers` lists every tracked researcher a
 fetch attached. Approval is for every name listed, so a fetch that would attach a new name to an
@@ -177,6 +177,14 @@ from the fetch job writing back into the stored snapshot.
 First hit wins: **DOI** normalized (lowercased, `https://doi.org/` and `doi:` stripped), then **PMID**
 exact, then **fuzzy title plus year**. The last routes to the review queue only, never auto-merging
 two entries.
+
+Across fetches, the writer also matches `source_record_ids`: ORCID work
+put-codes scoped to the configured API record URL. This is record identity,
+not a title-based or cross-source merge rule. Keep all group summary aliases
+through enrichment, approval and refresh. A changed preferred summary still
+updates the same entry. Existing records with neither a DOI/PMID nor stored
+source identity remain separate and require manual review; never infer their
+identity from a title.
 
 ## 8. Configuration
 

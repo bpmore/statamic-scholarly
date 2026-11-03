@@ -30,7 +30,7 @@ final class OrcidWorks
      *
      * @throws UnexpectedOrcidResponse when the response is not a works listing
      */
-    public static function candidates(array $decoded, ?int $modifiedSinceMillis = null): array
+    public static function candidates(array $decoded, ?int $modifiedSinceMillis = null, ?string $recordUri = null): array
     {
         $candidates = [];
 
@@ -45,10 +45,36 @@ final class OrcidWorks
                 journal: self::string($summary['journal-title']['value'] ?? null),
                 publicationDate: self::date($summary['publication-date'] ?? null),
                 externalUrls: \array_values(\array_filter([self::string($summary['url']['value'] ?? null)])),
+                sourceRecordIds: self::recordIds($group, $recordUri),
             );
         }
 
         return $candidates;
+    }
+
+    /**
+     * Keep every summary's identity so changing the preferred summary does
+     * not create another entry. A put-code alone is not globally unique.
+     *
+     * @return list<string>
+     */
+    private static function recordIds(array $group, ?string $recordUri): array
+    {
+        if ($recordUri === null || \trim($recordUri) === '') {
+            return [];
+        }
+
+        $ids = [];
+
+        foreach ($group['work-summary'] ?? [] as $summary) {
+            $code = $summary['put-code'] ?? null;
+
+            if ((\is_int($code) || (\is_string($code) && \ctype_digit($code))) && (int) $code > 0) {
+                $ids[] = \rtrim($recordUri, '/').'/work/'.(int) $code;
+            }
+        }
+
+        return \array_values(\array_unique($ids));
     }
 
     /**
