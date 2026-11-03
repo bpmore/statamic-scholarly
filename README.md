@@ -149,6 +149,18 @@ researcher's verifier in the new field. For researchers with none:
 SCHOLARLY_VERIFIER_EMAIL=review@example.org
 ```
 
+### Upgrading after repeated ORCID imports
+
+Scholarly keeps ORCID work record IDs so repeated fetches reuse papers even
+when ORCID supplies neither a DOI nor a PMID. Run `php please scholarly:install`
+after updating to add the new hidden source-record field to the blueprint.
+Fetches also add missing blueprint fields automatically.
+
+Older records without these IDs cannot be linked safely by title. A first
+fetch can add one identifiable copy; subsequent fetches reuse it. Review any
+older duplicates by hand, keeping the reviewed entry and its decision. The
+upgrade never deletes or merges records by title.
+
 ## Running a fetch
 
 ```

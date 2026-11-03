@@ -237,3 +237,17 @@ it('still returns the candidates and reports the run partial when the full recor
     'outage' => [503, '', Reason::TransportFailed],
     'not a bulk body' => [200, '{"group":[]}', Reason::UnexpectedResponse],
 ]);
+
+
+it('carries scoped record identities through real source parsing and detail enrichment', function (): void {
+    Http::fake([WORKS_URL => Http::response(carberryBody(), 200), BULK_URL => Http::response(carberryBulk(), 200)]);
+    $outcome = orcidSource()->fetchForResearcher(researcher([ORCID_HANDLE => CARBERRY]));
+    expect($outcome->isComplete())->toBeTrue()
+        ->and($outcome->candidates)->toHaveCount(6);
+    foreach ($outcome->candidates as $candidate) {
+        expect($candidate->sourceRecordIds)->not->toBeEmpty();
+        foreach ($candidate->sourceRecordIds as $id) {
+            expect($id)->toStartWith('https://pub.orcid.org/v3.0/'.CARBERRY.'/work/');
+        }
+    }
+});

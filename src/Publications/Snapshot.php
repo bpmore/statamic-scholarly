@@ -34,8 +34,10 @@ final class Snapshot
         $pages = null;
         $authors = [];
         $urls = [];
+        $recordIds = [];
 
         foreach ($merged->candidates as $candidate) {
+            $recordIds = \array_values(\array_unique([...$recordIds, ...$candidate->sourceRecordIds]));
             $title ??= self::text($candidate->title);
             $journal ??= self::text($candidate->journal);
             $date ??= self::text($candidate->publicationDate);
@@ -77,6 +79,7 @@ final class Snapshot
             ], $authors),
             'external_urls' => $urls,
             'source_apis' => $merged->sourceKeys,
+            'source_record_ids' => $recordIds,
         ];
     }
 

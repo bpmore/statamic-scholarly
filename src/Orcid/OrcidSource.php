@@ -156,7 +156,7 @@ final class OrcidSource implements PublicationSource
         }
 
         try {
-            $candidates = OrcidWorks::candidates($decoded, $sinceMillis);
+            $candidates = OrcidWorks::candidates($decoded, $sinceMillis, $this->baseUrl.$orcid);
             $putCodes = OrcidWorks::putCodes($decoded, $sinceMillis);
         } catch (UnexpectedOrcidResponse $e) {
             return $outcome->withFailure($this->failure(Reason::UnexpectedResponse, $e->getMessage()));

@@ -15,6 +15,7 @@ final readonly class CandidatePublication
     /**
      * @param  list<array{name: string, affiliation?: string|null, orcid?: string|null}>  $authors
      * @param  list<string>  $externalUrls
+     * @param  list<string>  $sourceRecordIds  Stable record URLs, scoped to the source and researcher
      */
     public function __construct(
         public string $sourceKey,
@@ -29,6 +30,7 @@ final readonly class CandidatePublication
         public ?string $volume = null,
         public ?string $issue = null,
         public ?string $pages = null,
+        public array $sourceRecordIds = [],
     ) {}
 
     /**
@@ -52,6 +54,7 @@ final readonly class CandidatePublication
             $this->volume,
             $this->issue,
             $this->pages,
+            $this->sourceRecordIds,
         );
     }
 
