@@ -1,7 +1,7 @@
 # Scholarly: Marketplace submission draft
 
-Status: prepared for review, not submitted. Use a release containing the
-public-visibility fix described in CHANGELOG.md, not the existing 0.3.0 tag.
+Status: prepared for review, not submitted. Use v0.3.1, which contains the
+public-visibility and repeated-ORCID-fetch fixes described in CHANGELOG.md.
 
 ## Listing fields
 
@@ -105,9 +105,8 @@ Composer download. The new local review uses fictional data only.
 ## Launch handoff
 
 - Confirm the listing name is available in the actual submission form.
-- Publish the reviewed branch through a pull request and wait for the PHP
-  version checks. No changes have been pushed as part of this work.
-- Create a release containing the fix; 0.3.1 is the proposed patch number.
+- Both fixes are merged through pull requests #25 and #26. All PHP version
+  checks passed. The release target is v0.3.1.
 - Confirm the release download installs, not only the working checkout.
 - Make source and issue-tracker access work for customers at launch and
   register/check the public Composer package. Do not change visibility
