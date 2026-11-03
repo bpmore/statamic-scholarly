@@ -10,6 +10,21 @@ have verified entries by hand and cannot re-verify them.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-02
+
+### Fixed
+
+- The README now installs the public Packagist package without a private
+  repository or GitHub token. Removed the stale private-access instructions.
+- Setup, publishing, source-failure, import and feed URL descriptions now
+  match the current behavior. Calibrated scores are described as estimates.
+
+### Changed
+
+- Refreshed the README gallery with six actual product screenshots using
+  fictional demo data and public image URLs for the Marketplace listing.
+- Clarified which host features need Statamic Pro. Scholarly remains free.
+
 ## [0.3.1] - 2026-11-02
 
 ### Fixed
