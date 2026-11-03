@@ -1,6 +1,7 @@
 # Scholarly
 
-Builds a verified publication list for a researcher profile in Statamic.
+Match publications to researcher profiles in Statamic, review possible
+matches, and publish approved lists.
 
 Publications are pulled from ORCID and PubMed, de-duplicated across sources,
 scored, and queued for review. With automatic approval on, an ORCID claim or
@@ -16,27 +17,33 @@ actually wrote the paper.
 ## What it does
 
 - Fetches from ORCID and PubMed, with author affiliations, author ORCID iDs
-  and abstracts. Scopus and Web of Science are not yet built.
+  and abstracts where the sources supply them. Scopus and Web of Science
+  are not included.
 - De-duplicates on DOI, then PMID. A title match is flagged for a person
   rather than merged, because an erratum and the paper it corrects share a
-  title and are different works.
+  title and are different works. Scoped ORCID work IDs keep repeated fetches
+  from creating extra copies when a work has neither DOI nor PMID.
 - Scores every candidate with a breakdown that says why, and states plainly
   whether the number is certain, an uncalibrated ordering, or a calibrated
   probability. Calibrates from your verifiers' decisions when there are enough.
 - Routes candidates through a review queue in the control panel. A paper
-  reaches a public page when a person confirms it, when the researcher's own
-  ORCID iD is on it, or when a calibrated score puts it at nine in ten or
-  better. The last two say so on the entry, and a person can reverse them.
+  can be approved by a person or, with automatic approval on, by an ORCID
+  claim or a calibrated score at the configured threshold. Automatic
+  approvals say so on the entry and can be reversed. Both the paper and
+  researcher must also be published before they appear in public output.
 - Imports BibTeX and CSV, renders through an Antlers tag with citation
   styles, serves a JSON feed, and mails (or webhooks) verifiers a digest.
 
 ## What it looks like
 
+Actual Scholarly screens with fictional people and publications. The local
+demo shows Statamic Pro in trial mode.
+
 | | |
 |---|---|
-| ![The publications listing, with status, confidence and the waiting count in the nav](docs/screenshots/01-publication-review-listing.png) | ![Confirm, Reject and Defer on a row](docs/screenshots/02-row-actions.png) |
-| ![An entry's Verification sidebar with the score, its state, and why](docs/screenshots/03-entry-verification.png) | ![A researcher's own page: verifier, recent approved publications, candidates waiting](docs/screenshots/04-researcher-page.png) |
-| ![The Tools page: the queue, every researcher, sources, and whether the next run can answer](docs/screenshots/05-tools-page.png) | |
+| ![Publication review with approved, rejected and candidate records](https://raw.githubusercontent.com/bpmore/statamic-scholarly/main/docs/screenshots/01-publication-review.jpg) | ![Confirm, defer and reject actions](https://raw.githubusercontent.com/bpmore/statamic-scholarly/main/docs/screenshots/02-review-actions.jpg) |
+| ![Publication details and review status](https://raw.githubusercontent.com/bpmore/statamic-scholarly/main/docs/screenshots/03-publication-details.jpg) | ![Researcher summary with approved publications and candidates waiting](https://raw.githubusercontent.com/bpmore/statamic-scholarly/main/docs/screenshots/04-researcher-summary.jpg) |
+| ![Scholarly review queue and researcher setup](https://raw.githubusercontent.com/bpmore/statamic-scholarly/main/docs/screenshots/05-scholarly-status.jpg) | ![Source settings and identifier fields](https://raw.githubusercontent.com/bpmore/statamic-scholarly/main/docs/screenshots/06-source-settings.jpg) |
 
 ## What it will not do
 
@@ -59,28 +66,26 @@ actually wrote the paper.
 - Statamic 6.27 or newer. Entries on the flat-file Stache or on
   `statamic/eloquent-driver` (uuid or integer ids); the Eloquent driver
   itself needs PHP 8.3.
-- A queue for the nightly fetch, or run it synchronously.
+- A queue for the scheduled fetch, or run it synchronously.
+- [Statamic Pro](https://statamic.dev/getting-started/licensing) for host
+  features such as multiple editor accounts, roles and permissions.
+  Scholarly itself is free.
 
 ## Installing
 
-The repository is private, so Composer needs to be told where it is and how
-to authenticate. In the site's `composer.json`:
+Scholarly is public and available on
+[Packagist](https://packagist.org/packages/bpmore/statamic-scholarly). Run
+these commands from your Statamic site:
 
-```json
-"repositories": [
-    { "type": "vcs", "url": "https://github.com/bpmore/statamic-scholarly" }
-]
-```
-
-Then, with a GitHub token that can read the repository (Composer will ask
-for one the first time, or set it with `composer config --global
-github-oauth.github.com <token>`):
-
-```
-composer require bpmore/statamic-scholarly:^0.3
+```sh
+composer require bpmore/statamic-scholarly:^0.3.1
 php artisan vendor:publish --tag=statamic-scholarly-config
 php please scholarly:install
 ```
+
+No custom Composer repository or private-repository GitHub token is needed.
+If you previously added a VCS repository for Scholarly, remove that entry
+from your site's `composer.json` to use Packagist's package listing.
 
 `scholarly:install` creates the publications collection the addon owns and
 writes a `scholarly` fieldset for your researcher blueprint. It is safe to
@@ -131,9 +136,9 @@ The addon does not assume your collection or field handles. In
 ],
 ```
 
-A wrong handle fails quietly: the field reads empty, nothing is found, and
-that looks exactly like a researcher with no publications. Check these first
-when a fetch finds less than you expected.
+A wrong handle can make an identifier read empty. The fetch reports the
+missing field as a source failure and marks the run partial. Check the
+configured handles and the researcher entry when a source cannot run.
 
 ### Import the fieldset and name a verifier
 
@@ -194,8 +199,9 @@ state first.
 - `uncalibrated`: the shipped starting weights. The order is meaningful
   (co-authors you have published with, your affiliation, a rare name); the
   number is not a probability.
-- `calibrated`: fitted to this site's decisions. A 0.90 was right about nine
-  times in ten on decisions the fit did not see.
+- `calibrated`: fitted to this site's labelled examples. The number is an
+  estimated probability, not a guarantee. The calibration command reports
+  predicted and observed results on held-out decisions.
 
 Open the entry to see why it scored as it did.
 
@@ -226,8 +232,8 @@ php please scholarly:import ~/list.csv josiah-carberry --confirm-as=jc@example.e
 BibTeX from any reference manager (Google Scholar's export included), or a
 CSV whose header names the columns (`title`, `doi`, `pmid`, `journal`,
 `date`, `authors`, `abstract`, `volume`, `issue`, `pages`; Google Scholar's
-own headers work too). Records are de-duplicated against what a fetch
-already found and queue as candidates. `--confirm-as` approves them as that
+own headers work too). Records with a DOI or PMID are matched against what a fetch already found
+and queue as candidates. A title alone is not enough to merge records. `--confirm-as` approves them as that
 person, which is the right thing when the file is the researcher's own list.
 
 ## Rendering
@@ -257,8 +263,8 @@ and `journal` work as on the collection tag.
   `vancouver`; add `:html` for an italic journal and escaped text). What the
   record lacks is left out, never filled in.
 - `{{ scholarly:publications_count researcher="{id}" }}` gives the number.
-- `{{ scholarly:feed_url researcher="{id}" }}` is a JSON feed of the same
-  approved list, at `/!/statamic-scholarly/feed/{researcher}`, with
+- `{{ scholarly:feed_url researcher="{id}" }}` returns the URL for a JSON
+  feed of the same approved list, at `/!/statamic-scholarly/feed/{researcher}`, with
   `?year=`, `?journal=` and `?limit=`.
 
 ## Being told
@@ -304,8 +310,8 @@ only whether they are set.
 ## What it sends where
 
 Every outbound request the addon makes, so you can decide whether that is
-acceptable on your site. Nothing is sent on a page render; all of it runs
-from `scholarly:fetch`, `scholarly:notify` and `scholarly:calibrate`.
+acceptable on your site. Nothing is sent on a page render. Requests run
+from `scholarly:fetch` and `scholarly:notify`; calibration reads saved data.
 
 - **NCBI E-utilities** (`eutils.ncbi.nlm.nih.gov`): the researcher's PubMed
   author string, PMIDs, your `SCHOLARLY_NCBI_EMAIL`, the tool name
