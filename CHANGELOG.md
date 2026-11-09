@@ -10,6 +10,24 @@ have verified entries by hand and cannot re-verify them.
 
 ## [Unreleased]
 
+### Security
+
+- The page under Tools writes braces as entities in every value the site
+  supplied: researcher titles, last-run summaries (which quote what a
+  source returned), verifier names and config values. Statamic compiles
+  the page as a Vue template, so a double brace in any of those was run as
+  an expression in the viewer's control-panel session.
+- The `scholarly_citation` modifier's `html` mode now escapes every part
+  of the citation: author names, date, volume, issue, pages and DOI, not
+  only the title and journal. A record from ORCID can be approved without
+  a person reading it, so markup in a contributor name reached the public
+  page as markup. Plain-text mode is unchanged.
+
+### Fixed
+
+- APA initials are split per character rather than per byte, so an initial
+  outside ASCII (É) renders whole instead of as two broken bytes.
+
 ## [0.3.2] - 2026-11-02
 
 ### Fixed

@@ -771,3 +771,38 @@ legacy duplicates automatically (older records lack proof of source identity).
 Existing keyless records without this field need manual review. The first
 fetch after upgrade can add one identifiable copy; later fetches reuse it.
 Deduplicator grouping rules and public output fields do not change.
+
+## 2026-11-09: Every site-supplied string on a Vue-compiled page is brace-encoded, and an HTML citation escapes every part
+
+**Decision.** The page under Tools prints every value that did not come
+from the view file itself through `@plain`, which is Blade's `e()` with
+`{` and `}` written as entities (`Support\VueSafe`). Nothing dynamic goes
+into a `ui-description` text prop. In the `scholarly_citation` modifier's
+`html` mode, every part of the record is escaped before any wrapping: the
+authors, title, journal, date, volume, issue, pages and DOI. Plain-text mode
+is not escaped at all.
+
+**Why.** Statamic compiles a utility's markup as a Vue template, and
+Blade's `{{ }}` escapes `<>&"'` but leaves braces alone, so a double brace
+in a researcher's title, a last-run summary (which quotes the detail a
+source returned) or a verifier's name was evaluated as an expression in the
+viewer's control-panel session. The formatter escaped only the title and
+journal, so a contributor name, the pages or the DOI carrying markup went
+into the host's public page as markup. Both are data a source returned: an
+ORCID record's contributors and identifiers are whatever the record holder
+typed, and an ORCID claim can be approved without a person reading it.
+
+**Rejected.** `v-pre` on the table, which would also stop the `ui-*`
+components inside it from rendering. Escaping each name part before the
+author string is composed, which would split an entity into characters
+when APA writes the initials one by one. A replace of `&` over the joined
+APA author string, which double-escaped names that were escaped already;
+the ampersand APA writes is the formatter's own and is written escaped.
+
+**Verification.** A utility test renders the page with braces, a quote and
+markup in a title, a run summary, a user's name and three config values and
+asserts the entities are in the template Vue receives and no raw `{{` is.
+A formatter case per style renders markup in an author, the date, volume,
+issue, pages and DOI and asserts the `<i>` around the journal is the only
+tag in the output, and that plain-text mode is untouched. All six failed
+against the previous view and formatter.

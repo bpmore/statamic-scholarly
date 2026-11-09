@@ -31,24 +31,51 @@ final class Formatter
             throw new \InvalidArgumentException(\sprintf('Unknown citation style "%s". Use one of: %s.', $style, \implode(', ', self::STYLES)));
         }
 
-        $names = self::names($record['authors'] ?? []);
-        $title = self::text($record['title'] ?? null);
-        $journal = self::text($record['journal'] ?? null);
-        $date = self::text($record['publication_date'] ?? null);
-        $year = $date === null ? null : \substr($date, 0, 4);
-        $volume = self::text($record['volume'] ?? null);
-        $issue = self::text($record['issue'] ?? null);
-        $pages = self::text($record['pages'] ?? null);
-        $doi = self::text($record['doi'] ?? null);
-
-        $e = $html ? static fn (?string $v): ?string => $v === null ? null : \htmlspecialchars($v, ENT_QUOTES, 'UTF-8') : static fn (?string $v): ?string => $v;
+        // In HTML mode every part of the record is escaped, not only the
+        // title and journal. The record is what a source returned: an ORCID
+        // work's contributors, pages and DOI are typed by whoever holds that
+        // ORCID record, and an ORCID claim can be approved without a person
+        // reading it. A name carrying markup went into a public page as
+        // markup. Escaping happens before any wrapping, so the <i> around
+        // the journal is the only tag in the output.
+        $e = self::escaper($html);
         $i = $html ? static fn (string $v): string => '<i>'.$v.'</i>' : static fn (string $v): string => $v;
 
+        $names = self::names($record['authors'] ?? []);
+        $title = $e(self::text($record['title'] ?? null));
+        $journal = self::text($record['journal'] ?? null);
+        $date = self::text($record['publication_date'] ?? null);
+        $year = $e($date === null ? null : \substr($date, 0, 4));
+        $volume = $e(self::text($record['volume'] ?? null));
+        $issue = $e(self::text($record['issue'] ?? null));
+        $pages = $e(self::text($record['pages'] ?? null));
+        $doi = $e(self::text($record['doi'] ?? null));
+
         return match ($style) {
-            'ama' => self::ama($names, $e($title), $journal === null ? null : $i($e($journal)), $year, $volume, $issue, $pages, $doi),
-            'vancouver' => self::vancouver($names, $e($title), $e($journal), $date, $volume, $issue, $pages, $doi),
-            'apa' => self::apa($names, $e($title), $journal === null ? null : $i($e($journal)), $year, $volume, $issue, $pages, $doi, $html),
+            'ama' => self::ama($names, $title, $journal === null ? null : $i($e($journal)), $year, $volume, $issue, $pages, $doi, $e),
+            'vancouver' => self::vancouver($names, $title, $e($journal), $e(self::vancouverDate($date)), $volume, $issue, $pages, $doi, $e),
+            'apa' => self::apa($names, $title, $journal === null ? null : $i($e($journal)), $year, $volume, $issue, $pages, $doi, $e, $html),
         };
+    }
+
+    /**
+     * The one escaping rule for HTML mode, and the identity otherwise.
+     * Applied to a whole author string after its initials are composed:
+     * escaping first and composing after would split an entity into
+     * characters.
+     *
+     * @return \Closure(?string): ?string
+     */
+    private static function escaper(bool $html): \Closure
+    {
+        if (! $html) {
+            return static fn (?string $v): ?string => $v;
+        }
+
+        // ENT_SUBSTITUTE: on an invalid byte htmlspecialchars otherwise
+        // returns "", and a whole author would vanish from the citation
+        // with nothing to say why.
+        return static fn (?string $v): ?string => $v === null ? null : \htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     /**
@@ -57,10 +84,11 @@ final class Formatter
      * doi:..."
      *
      * @param  list<array{surname: string, initials: string}>  $names
+     * @param  \Closure(?string): ?string  $e
      */
-    private static function ama(array $names, ?string $title, ?string $journal, ?string $year, ?string $volume, ?string $issue, ?string $pages, ?string $doi): string
+    private static function ama(array $names, ?string $title, ?string $journal, ?string $year, ?string $volume, ?string $issue, ?string $pages, ?string $doi, \Closure $e): string
     {
-        $authors = \array_map(static fn (array $n): string => \trim($n['surname'].' '.$n['initials']), $names);
+        $authors = \array_map(static fn (array $n): string => (string) $e(\trim($n['surname'].' '.$n['initials'])), $names);
 
         if (\count($authors) > 6) {
             $authors = [...\array_slice($authors, 0, 3), 'et al'];
@@ -98,10 +126,11 @@ final class Formatter
      * Title. Journal. Year Mon Day;Vol(Issue):Pages."
      *
      * @param  list<array{surname: string, initials: string}>  $names
+     * @param  \Closure(?string): ?string  $e
      */
-    private static function vancouver(array $names, ?string $title, ?string $journal, ?string $date, ?string $volume, ?string $issue, ?string $pages, ?string $doi): string
+    private static function vancouver(array $names, ?string $title, ?string $journal, ?string $date, ?string $volume, ?string $issue, ?string $pages, ?string $doi, \Closure $e): string
     {
-        $authors = \array_map(static fn (array $n): string => \trim($n['surname'].' '.$n['initials']), $names);
+        $authors = \array_map(static fn (array $n): string => (string) $e(\trim($n['surname'].' '.$n['initials'])), $names);
 
         if (\count($authors) > 6) {
             $authors = [...\array_slice($authors, 0, 6), 'et al.'];
@@ -121,7 +150,7 @@ final class Formatter
             $parts[] = $journal.'.';
         }
 
-        $where = self::yearVolumeIssuePages(self::vancouverDate($date), $volume, $issue, $pages, ';');
+        $where = self::yearVolumeIssuePages($date, $volume, $issue, $pages, ';');
 
         if ($where !== null) {
             $parts[] = $where.'.';
@@ -140,21 +169,24 @@ final class Formatter
      * authors; more, the first nineteen, an ellipsis, and the last.
      *
      * @param  list<array{surname: string, initials: string}>  $names
+     * @param  \Closure(?string): ?string  $e
      */
-    private static function apa(array $names, ?string $title, ?string $journal, ?string $year, ?string $volume, ?string $issue, ?string $pages, ?string $doi, bool $html): string
+    private static function apa(array $names, ?string $title, ?string $journal, ?string $year, ?string $volume, ?string $issue, ?string $pages, ?string $doi, \Closure $e, bool $html): string
     {
-        $authors = \array_map(static fn (array $n): string => $n['initials'] === '' ? $n['surname'] : $n['surname'].', '.\implode(' ', \array_map(static fn (string $c): string => $c.'.', \str_split($n['initials']))), $names);
+        $authors = \array_map(static fn (array $n): string => (string) $e($n['initials'] === '' ? $n['surname'] : $n['surname'].', '.\implode(' ', \array_map(static fn (string $c): string => $c.'.', \mb_str_split($n['initials'])))), $names);
+
+        // The ampersand APA puts before the last author is the formatter's
+        // own, so it is written escaped rather than escaped afterwards: a
+        // replace over the joined string would also hit the names, which
+        // are escaped already.
+        $and = $html ? '&amp;' : '&';
 
         if (\count($authors) > 20) {
             $joined = \implode(', ', \array_slice($authors, 0, 19)).', ... '.$authors[\count($authors) - 1];
         } elseif (\count($authors) > 1) {
-            $joined = \implode(', ', \array_slice($authors, 0, -1)).', & '.$authors[\count($authors) - 1];
+            $joined = \implode(', ', \array_slice($authors, 0, -1)).', '.$and.' '.$authors[\count($authors) - 1];
         } else {
             $joined = $authors[0] ?? '';
-        }
-
-        if ($html) {
-            $joined = \str_replace('&', '&amp;', $joined);
         }
 
         $parts = [];
