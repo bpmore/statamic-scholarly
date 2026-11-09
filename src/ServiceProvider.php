@@ -13,10 +13,12 @@ use Bpmore\Scholarly\Notifications\NotifyVerifiers;
 use Bpmore\Scholarly\Orcid\OrcidSource;
 use Bpmore\Scholarly\Publications\PublicationsCollection;
 use Bpmore\Scholarly\Researchers\ResearcherFieldMap;
+use Bpmore\Scholarly\Support\VueSafe;
 use Bpmore\Scholarly\Utility\StatusReport;
 use Bpmore\Scholarly\Verification\Verifier;
 use Bpmore\Scholarly\Verification\WaitingCount;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Blade;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
 use Statamic\Facades\Utility;
@@ -222,6 +224,10 @@ class ServiceProvider extends AddonServiceProvider
 
     public function bootAddon(): void
     {
+        // `@plain($x)` for any value that reaches a view Vue will compile. See
+        // `VueSafe` for why Blade's own escaping is not enough there.
+        Blade::directive('plain', static fn (string $expression): string => '<?php echo \\'.VueSafe::class."::text({$expression}); ?>");
+
         // The webhook channel exists only when a URL is configured; with
         // none, "webhook" in the channels list is dropped by NotifyVerifiers
         // rather than sent nowhere.

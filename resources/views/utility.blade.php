@@ -5,9 +5,14 @@
     file, and the page says where.
 
     Statamic compiles a utility's HTML as a Vue template, so Statamic's
-    `ui-*` components work here and a literal double brace would be read by
-    Vue. Every value printed is a handle, an email, a date, a number, or a
-    sentence the addon itself wrote.
+    `ui-*` components work here and a literal double brace is read by Vue
+    as an expression and run in the viewer's session. Every string that did
+    not come from this file goes through `@plain`, not `{{ }}`: a
+    researcher's title, a last-run summary (which quotes what a source
+    returned), a verifier's name, a handle or address from config. Numbers,
+    booleans and the words chosen here are the only things `{{ }}` prints.
+    Nothing dynamic goes into a `ui-description` text prop, which is
+    rendered as HTML.
 --}}
 
 @php($r = $report)
@@ -30,7 +35,7 @@
             </div>
             <ui-description text="Waiting means a candidate nobody has confirmed, rejected or set aside. A candidate is an estimate, not a verified publication, until a person confirms it or a calibrated score clears the threshold." />
             <div>
-                <ui-button size="sm" href="{{ cp_route('collections.show', $r['queue']['collection']) }}" text="Open Publication review" />
+                <ui-button size="sm" href="@plain(cp_route('collections.show', $r['queue']['collection']))" text="Open Publication review" />
             </div>
         </div>
     </ui-card-panel>
@@ -38,7 +43,7 @@
     <ui-card-panel heading="Researchers">
         <div class="space-y-4">
             <div class="flex flex-wrap gap-2">
-                <ui-badge text="{{ $r['researchers']['total'] }} in {{ $r['researchers']['collection'] }}" pill />
+                <ui-badge text="{{ $r['researchers']['total'] }} in @plain($r['researchers']['collection'])" pill />
                 <ui-badge color="{{ $r['researchers']['without_identifiers'] > 0 ? 'amber' : 'default' }}" text="{{ $r['researchers']['without_identifiers'] }} with no identifier" pill />
                 <ui-badge color="{{ $r['researchers']['never_fetched'] > 0 ? 'amber' : 'default' }}" text="{{ $r['researchers']['never_fetched'] }} never fetched" pill />
                 <ui-badge color="{{ $r['researchers']['partial'] > 0 ? 'red' : 'default' }}" text="{{ $r['researchers']['partial'] }} last run partial" pill />
@@ -60,13 +65,13 @@
                     <ui-table-rows>
                         @foreach ($r['researchers']['rows'] as $row)
                             <ui-table-row>
-                                <ui-table-cell><a href="{{ $row['edit_url'] }}">{{ $row['title'] }}</a></ui-table-cell>
+                                <ui-table-cell><a href="@plain($row['edit_url'])">@plain($row['title'])</a></ui-table-cell>
                                 <ui-table-cell>
                                     @if ($row['identifiers'] === [])
                                         <ui-badge color="amber" text="none" />
                                     @else
                                         @foreach ($row['identifiers'] as $kind => $value)
-                                            <ui-badge text="{{ str_replace('_', ' ', $kind) }}" />
+                                            <ui-badge text="@plain(str_replace('_', ' ', $kind))" />
                                         @endforeach
                                     @endif
                                 </ui-table-cell>
@@ -75,15 +80,15 @@
                                         <ui-badge text="never" />
                                     @else
                                         <ui-badge color="{{ $row['last_run']['complete'] ? 'emerald' : 'red' }}" text="{{ $row['last_run']['complete'] ? 'complete' : 'partial' }}" />
-                                        <span class="text-sm">{{ $row['last_run']['at'] === null ? '' : substr($row['last_run']['at'], 0, 16) }} {{ $row['last_run']['summary'] }}</span>
+                                        <span class="text-sm">@plain($row['last_run']['at'] === null ? '' : substr($row['last_run']['at'], 0, 16)) @plain($row['last_run']['summary'])</span>
                                     @endif
                                 </ui-table-cell>
                                 <ui-table-cell>{{ $row['waiting'] }}</ui-table-cell>
                                 <ui-table-cell>
                                     @if ($row['verifier'] !== null)
-                                        {{ $row['verifier'] }}
+                                        @plain($row['verifier'])
                                     @elseif ($r['notifications']['fallback'] !== null)
-                                        <span class="text-sm">fallback: {{ $r['notifications']['fallback'] }}</span>
+                                        <span class="text-sm">fallback: @plain($r['notifications']['fallback'])</span>
                                     @else
                                         <ui-badge color="{{ $row['waiting'] > 0 ? 'red' : 'amber' }}" text="nobody" />
                                     @endif
@@ -108,15 +113,15 @@
                 <ui-table-rows>
                     @foreach ($r['sources']['registered'] as $s)
                         <ui-table-row>
-                            <ui-table-cell><code>{{ $s['key'] }}</code></ui-table-cell>
+                            <ui-table-cell><code>@plain($s['key'])</code></ui-table-cell>
                             <ui-table-cell>{{ $s['enabled'] ? 'on' : 'off' }}</ui-table-cell>
                             <ui-table-cell><ui-badge color="{{ $s['configured'] ? 'emerald' : 'amber' }}" text="{{ $s['configured'] ? 'yes' : 'no' }}" /></ui-table-cell>
-                            <ui-table-cell>{{ $s['needs'] ?? '' }}</ui-table-cell>
+                            <ui-table-cell>@plain($s['needs'] ?? '')</ui-table-cell>
                         </ui-table-row>
                     @endforeach
                     @foreach ($r['sources']['unregistered'] as $s)
                         <ui-table-row>
-                            <ui-table-cell><code>{{ $s['key'] }}</code></ui-table-cell>
+                            <ui-table-cell><code>@plain($s['key'])</code></ui-table-cell>
                             <ui-table-cell>{{ $s['enabled'] ? 'on' : 'off' }}</ui-table-cell>
                             <ui-table-cell><ui-badge color="{{ $s['enabled'] ? 'red' : 'default' }}" text="no" /></ui-table-cell>
                             <ui-table-cell>no source of this name is installed{{ $s['enabled'] ? ': turning it on in config fetches nothing' : '' }}</ui-table-cell>
@@ -131,7 +136,7 @@
                 <ui-description text="Which researcher fields this site maps to each identifier kind (researchers.fields). A kind with no field is why a source cannot run here." />
                 <ul class="mt-2 space-y-1 text-sm">
                     @foreach ($r['identifiers'] as $kind => $handle)
-                        <li><code>{{ $kind }}</code>: {{ $handle === null ? 'not mapped' : $handle }}</li>
+                        <li><code>@plain($kind)</code>: @plain($handle === null ? 'not mapped' : $handle)</li>
                     @endforeach
                 </ul>
             </div>
@@ -139,8 +144,15 @@
             <div>
                 <div class="font-medium">NCBI</div>
                 <ul class="mt-2 space-y-1 text-sm">
-                    <li>tool: <code>{{ $r['ncbi']['tool'] }}</code></li>
-                    <li>email: @if ($r['ncbi']['email'] === null)<ui-badge color="red" text="not set" /> NCBI requires one, and PubMed will not be queried without it (SCHOLARLY_NCBI_EMAIL)@else{{ $r['ncbi']['email'] }}@endif</li>
+                    <li>tool: <code>@plain($r['ncbi']['tool'])</code></li>
+                    <li>
+                        email:
+                        @if ($r['ncbi']['email'] === null)
+                            <ui-badge color="red" text="not set" /> NCBI requires one, and PubMed will not be queried without it (SCHOLARLY_NCBI_EMAIL)
+                        @else
+                            @plain($r['ncbi']['email'])
+                        @endif
+                    </li>
                     <li>API key: {{ $r['ncbi']['api_key'] ? 'set (ten requests a second)' : 'not set (three requests a second)' }}</li>
                 </ul>
             </div>
@@ -155,7 +167,8 @@
                 <ui-badge text="set aside below {{ $r['scoring']['floor'] === null ? 'off' : number_format($r['scoring']['floor'], 2) }}" pill />
             </div>
             @if ($r['scoring']['calibrated'])
-                <ui-description text="Fitted {{ $r['scoring']['fitted_at'] === null ? '' : substr($r['scoring']['fitted_at'], 0, 16).' ' }}on {{ $r['scoring']['positives'] ?? '?' }} confirmations and {{ $r['scoring']['negatives'] ?? '?' }} rejections. A calibrated score is a probability, not a guarantee: 0.94 means roughly one in seventeen is wrong." />
+                <p class="text-sm">Fitted @plain($r['scoring']['fitted_at'] === null ? '' : substr($r['scoring']['fitted_at'], 0, 16).' ')on {{ $r['scoring']['positives'] ?? '?' }} confirmations and {{ $r['scoring']['negatives'] ?? '?' }} rejections.</p>
+                <ui-description text="A calibrated score is a probability, not a guarantee: 0.94 means roughly one in seventeen is wrong." />
             @else
                 <ui-description text="Until scholarly:calibrate has {{ $r['scoring']['min_labels'] }} decisions with {{ $r['scoring']['min_labels_per_class'] }} of each kind, every candidate is scored by the shipped prior. An uncalibrated score is an ordering, not a probability, so the prior never approves anything and never sets anything aside, whatever the threshold and floor say." />
             @endif
@@ -164,13 +177,13 @@
 
     <ui-card-panel heading="Notifications and schedule">
         <ul class="space-y-1 text-sm">
-            <li>channels: {{ implode(', ', $r['notifications']['channels']) }}@if ($r['notifications']['webhook_dropped']) (webhook is listed but has no URL, so it is dropped)@endif</li>
+            <li>channels: @plain(implode(', ', $r['notifications']['channels']))@if ($r['notifications']['webhook_dropped']) (webhook is listed but has no URL, so it is dropped)@endif</li>
             <li>digest: {{ $r['notifications']['digest'] ? 'one mail per verifier' : 'one mail per researcher' }}</li>
-            <li>fallback verifier: {{ $r['notifications']['fallback'] ?? 'none (SCHOLARLY_VERIFIER_EMAIL)' }}</li>
+            <li>fallback verifier: @plain($r['notifications']['fallback'] ?? 'none (SCHOLARLY_VERIFIER_EMAIL)')</li>
             @if ($r['notifications']['webhook'])
                 <li>webhook: set, {{ $r['notifications']['webhook_signed'] ? 'signed' : 'unsigned (SCHOLARLY_WEBHOOK_SECRET is empty)' }}</li>
             @endif
-            <li>fetch schedule: {{ $r['schedule'] ?? 'off (the host runs scholarly:fetch itself)' }}</li>
+            <li>fetch schedule: @plain($r['schedule'] ?? 'off (the host runs scholarly:fetch itself)')</li>
         </ul>
     </ui-card-panel>
 

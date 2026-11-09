@@ -66,13 +66,22 @@ function utilityCandidate(array $researcherIds, array $extra = []): \Statamic\Co
     return $entry;
 }
 
-function scholarlyPage(): string
+/**
+ * The utility's markup exactly as Statamic hands it to Vue: the `html`
+ * prop of the Inertia page, with no entity decoded.
+ */
+function scholarlyTemplate(): string
 {
     $response = test()->actingAs(test()->super)->get(cp_route('utilities.index').'/scholarly')->assertOk()->getContent();
     preg_match('/data-page="([^"]+)"/', $response, $m);
     $page = json_decode(html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'), true);
 
-    return html_entity_decode((string) $page['props']['html'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return (string) $page['props']['html'];
+}
+
+function scholarlyPage(): string
+{
+    return html_entity_decode(scholarlyTemplate(), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
 /**
@@ -119,6 +128,54 @@ it('renders for a super user, on an empty site and a populated one, as markup Vu
     $full = scholarlyPage();
     assertVueTemplateIsWellFormed($full);
     expect($full)->toContain('Ada')->toContain('1 waiting')->toContain('2 candidates');
+});
+
+it('writes braces as entities in every value the site supplied, so Vue reads them as text', function () {
+    // Vue compiles the page, and Blade's escaping leaves `{{` alone, so a
+    // double brace in a researcher's title, in a last-run summary (which
+    // quotes the detail a source returned, which is whatever the ORCID
+    // record holder typed), in a verifier's name or in a config value was
+    // evaluated as an expression in the viewer's session.
+    config()->set('statamic.editions.pro', true);
+
+    $verifier = User::make()->id('v1')->email('v1@example.edu')->data(['name' => 'Vee {{ 1+1 }}']);
+    $verifier->save();
+
+    utilityResearcher('Ada {{ 1+1 }} "quoted"', [
+        'orcid_id' => '0000-0002-1825-0097',
+        NotifyVerifiers::VERIFIER_FIELD => 'v1',
+        FetchForResearcher::LAST_RUN_FIELD => ['at' => '2026-09-01T03:00:00+00:00', 'complete' => false, 'summary' => 'PARTIAL: orcid: unreachable ({{ 2+2 }} <b>bold</b>)'],
+    ]);
+    utilityResearcher('Bob');
+    config()->set('statamic-scholarly.notifications.fallback', 'fallback {{ 3+3 }}');
+    config()->set('statamic-scholarly.ncbi.email', 'ops {{ 4+4 }}');
+    config()->set('statamic-scholarly.schedule', 'daily {{ 5+5 }}');
+
+    $template = scholarlyTemplate();
+    assertVueTemplateIsWellFormed($template);
+
+    expect($template)->toContain('Ada &#123;&#123; 1+1 &#125;&#125; &quot;quoted&quot;')
+        ->toContain('Vee &#123;&#123; 1+1 &#125;&#125;')
+        ->toContain('&#123;&#123; 2+2 &#125;&#125; &lt;b&gt;bold&lt;/b&gt;')
+        ->toContain('fallback &#123;&#123; 3+3 &#125;&#125;')
+        ->toContain('ops &#123;&#123; 4+4 &#125;&#125;')
+        ->toContain('daily &#123;&#123; 5+5 &#125;&#125;')
+        ->and(str_contains($template, '{{'))->toBeFalse('a raw double brace reached the Vue template')
+        ->and(str_contains($template, '<b>bold</b>'))->toBeFalse('markup from a run summary reached the Vue template');
+});
+
+it('writes braces and quotes as entities inside an attribute, so a value cannot leave it', function () {
+    // The researchers collection handle is printed inside a `text="..."`
+    // attribute. A quote in it would end the attribute; a brace, decoded
+    // by Vue, is still text there, but the rule is one rule for every
+    // value: braces are entities wherever the value came from.
+    config()->set('statamic-scholarly.researchers.collection', 'people" {{ 1+1 }}');
+
+    $template = scholarlyTemplate();
+    assertVueTemplateIsWellFormed($template);
+
+    expect($template)->toContain('text="0 in people&quot; &#123;&#123; 1+1 &#125;&#125;"')
+        ->and(str_contains($template, '{{'))->toBeFalse('a raw double brace reached the Vue template');
 });
 
 it('refuses a user without the utility permission, and admits one with it', function () {
